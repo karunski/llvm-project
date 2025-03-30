@@ -78,7 +78,81 @@ getReservedRegs(const MachineFunction &MF) const {
 bool WDCRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
                                           int SPAdj, unsigned FIOperandNum,
                                           RegScavenger *RS) const {
-  return true;
+  auto &machineInstruction = *II;
+  auto &machineFunction = *machineInstruction.getParent()->getParent();
+  // auto &machineFrameInfo = machineFunction.getFrameInfo();
+  // auto *wdcFunctionInfo = machineFunction.getInfo<WDCFunctionInfo>();
+
+  unsigned i = 0;
+  while (!machineInstruction.getOperand(i).isFI()) {
+    ++i;
+    assert(i < machineInstruction.getNumOperands() && "Instr doesn't have FrameIndex operand!");
+  }
+
+  LLVM_DEBUG(errs() << "\nFunction : " << machineFunction.getFunction().getName() << "\n";
+             errs() << "<--------->\n"
+                    << machineInstruction);
+
+  const auto frameIndex = machineInstruction.getOperand(i).getIndex();
+  const auto stackSize = machineFunction.getFrameInfo().getStackSize();
+  const auto stackPointerOffset = machineFunction.getFrameInfo().getObjectOffset(frameIndex);
+
+  LLVM_DEBUG(errs() << "frameIndex : " << frameIndex << "\n"
+                    << "stackPointerOffset   : " << stackPointerOffset << "\n"
+                    << "stackSize  : " << stackSize << "\n");
+
+  // const auto &calleeSavedInfo = machineFrameInfo.getCalleeSavedInfo();
+  // int MinCalleeSavedFrameIdx = 0;
+  // int MaxCalleeSavedFrameIdx = -1;
+
+  // if (!calleeSavedInfo.empty()) {
+  //   MinCalleeSavedFrameIdx = calleeSavedInfo.front().getFrameIdx();
+  //   MaxCalleeSavedFrameIdx = calleeSavedInfo.back().getFrameIdx();
+  // }
+
+  // The following stack frame objects are always referenced relative to $sp:
+  //  1. Outgoing arguments.
+  //  2. Pointer to dynamically allocated stack space.
+  //  3. Locations for callee-saved registers.
+  // Everything else is referenced relative to whatever register
+  // getFrameRegister() returns.
+  const auto frameRegister = WDC::S;
+
+  // Calculate final offset.
+  // - There is no need to change the offset if the frame object is one of the
+  //   following: an outgoing argument, pointer to a dynamically allocated
+  //   stack space or a $gp restore location,
+  // - If the frame object is any of the following, its offset must be
+  // adjusted
+  //   by adding the size of the stack:
+  //   incoming argument, callee-saved register location or local variable.
+  const auto Offset = stackPointerOffset + stackSize +
+                      machineInstruction.getOperand(i + 1).getImm();
+
+  LLVM_DEBUG(errs() << "Offset     : " << Offset << "\n" << "<--------->\n");
+
+  // If MI is not a debug value, make sure Offset fits in the 16-bit immediate
+  // field.
+  if (!machineInstruction.isDebugValue() && !isInt<8>(Offset)) {
+    errs() << "!!!ERROR!!! Not support large frame over 8-bit at this point.\n"
+           << "Though CH3_5 support it."
+           << "Reference: "
+              "http://jonathan2251.github.io/lbd/"
+              "backendstructure.html#large-stack\n"
+           << "However the CH9_3, dynamic-stack-allocation-support bring "
+              "instruction "
+              "move $fp, $sp that make it complicated in coding against the "
+              "tutoral "
+              "purpose of Cpu0.\n"
+           << "Reference: "
+              "http://jonathan2251.github.io/lbd/"
+              "funccall.html#dynamic-stack-allocation-support\n";
+    assert(0 && "(!MI.isDebugValue() && !isInt<8>(Offset))");
+  }
+
+  machineInstruction.getOperand(i).ChangeToRegister(frameRegister, false);
+  machineInstruction.getOperand(i + 1).ChangeToImmediate(Offset);
+  return false;
 }
 //}
 

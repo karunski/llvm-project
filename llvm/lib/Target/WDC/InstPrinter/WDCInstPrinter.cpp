@@ -78,6 +78,15 @@ printMemOperand(const MCInst *MI, int opNum, raw_ostream &O) {
   // Load/Store memory operands -- imm($reg)
   // If PIC target the target is loaded as the
   // pattern ld $t9,%call16($gp)
+  
+  if (const auto & regOperand = MI->getOperand(opNum); regOperand.isReg() && regOperand.getReg() == WDC::S)
+  {
+    const auto &offsetOperand = MI->getOperand(opNum+1);
+    O << offsetOperand.getImm() << ",S";
+    return;
+  }
+
+  // default printing of BASE + offset
   printOperand(MI, opNum+1, O);
   O << "(";
   printOperand(MI, opNum, O);

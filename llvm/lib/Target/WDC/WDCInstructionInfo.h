@@ -41,6 +41,10 @@ public:
   ///
   virtual const WDCRegisterInfo &getRegisterInfo() const = 0;
 
+  virtual void adjustStackPtr(unsigned SP, int64_t Amount,
+                              MachineBasicBlock &MBB,
+                              MachineBasicBlock::iterator I) const = 0;
+
   /// Return the number of bytes of code the specified instruction may be.
   unsigned GetInstSizeInBytes(const MachineInstr &MI) const;
 

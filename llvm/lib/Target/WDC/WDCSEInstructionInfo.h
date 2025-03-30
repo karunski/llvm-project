@@ -31,6 +31,10 @@ public:
   const WDCRegisterInfo &getRegisterInfo() const override;
   bool expandPostRAPseudo(MachineInstr &MI) const override;
 
+  /// Adjust SP by Amount bytes.
+  void adjustStackPtr(unsigned SP, int64_t Amount, MachineBasicBlock &MBB,
+                      MachineBasicBlock::iterator I) const override;
+
 private:
   void expandRTL(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
 };

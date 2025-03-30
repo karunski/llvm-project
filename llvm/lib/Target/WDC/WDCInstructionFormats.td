@@ -24,6 +24,7 @@ class AddressMode<bits<4> val> {
 def WDCAddressModePseudo : AddressMode<0>;
 def WDCAddressModeImmediate : AddressMode<1>;
 def WDCAddressModeImplied : AddressMode<2>;
+// def WDCAddressModeStackRelative : AddressMode<3>;
 
 // Generic Cpu0 Format
 class WDCInst<dag outs, dag ins, string asmstr, list<dag> pattern> : Instruction
@@ -55,27 +56,41 @@ class WDCImmediateInstruction<bits<8> opcode, dag outs, dag ins, string asmstr, 
   let Size = 3;
   let Opcode = opcode;
   let Inst{23-16} = opcode;
-  let m_addrMode = WDCAddressModeImplied;
+  let m_addrMode = WDCAddressModeImmediate;
 }
 
 class WDCImpliedInstruction<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
 : WDCInst<outs, ins, asmstr, pattern>
 {
   field bits<8> Inst;
-  let Size = 3;
+  let Size = 1;
   let Opcode = opcode;
   let Inst = opcode;
-  let m_addrMode = WDCAddressModeImmediate;
+  let m_addrMode = WDCAddressModeImplied;
+}
+
+class WDCStackRelativeInstruction<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
+: WDCInst<outs, ins, asmstr, pattern>
+{
+  field bits<16> Inst;
+  let Size = 2;
+  let Opcode = opcode;
+  let Inst{15-8} = opcode; 
 }
 
 def SignedImm16Operand      : Operand<i16> {
   let DecoderMethod= "DecodeSimm16";
 }
+def SignedImm8Operand : Operand<i8> {
+  let DecoderMethod="DecodeSimm8";
+}
 
 // Pattern 
 def SignedImm16Pattern  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
+def SignedImm8Pattern : PatLeaf<(imm), [{ return isInt<8>(N->getSExtValue()); }]>;
+def SignedFrameIndexPattern : PatLeaf<(frameindex)>;
 
-class WDCLogicInstructionImmmediate<
+class WDCLogicInstructionImmediate<
     bits<8>   op,
     SDNode    opNode,
     string    asmstr,
@@ -119,4 +134,25 @@ class WDCReturnInstruction<bits<8> opcode, string asmstr>
 : WDCImpliedInstruction<opcode, (outs), (ins), asmstr, []>
 {
   let isReturn = 1;
+}
+
+class WDCTransferInstruction<bits<8> opcode, string asmstr, RegisterClass rcdest, RegisterClass rcsrc>
+: WDCImpliedInstruction<opcode, (outs rcdest:$dst), (ins rcsrc:$src), asmstr, []>
+{
+  let DisableEncoding = "$src,$dst";
+}
+
+let WantsRoot = true in
+def addr : ComplexPattern<iPTR, 2, "SelectAddr", [frameindex]>;
+
+class WDCStoreInstructionStackRelative<bits<8> opcode, string asmstr, Operand operand>
+: WDCStackRelativeInstruction<
+  opcode,
+  (outs),
+  (ins AccumulatorRegisterClass:$accumulator, operand:$addr),
+  !strconcat(asmstr, "\t$addr"),
+  [(store AccumulatorRegisterClass:$accumulator, addr:$addr)]>
+{
+  let DisableEncoding = "$accumulator";
+  let mayStore = 1;
 }

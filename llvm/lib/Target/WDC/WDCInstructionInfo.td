@@ -20,9 +20,21 @@ include "WDCInstructionFormats.td"
 def WDCRetNode : SDNode<"WDCISD::Ret", SDTNone,
                      [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 
-def ORAi   : WDCLogicInstructionImmmediate<0x09, or, "ORA", SignedImm16Operand>;
+def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", SignedImm16Operand>;
 def LDAi   : WDCLoadInstructionImmediate<0xA9, ld, "LDA", SignedImm16Operand>;
+
+def mem_stack : Operand<iPTR> {
+  let PrintMethod = "printMemOperand";
+  let MIOperandInfo = (ops StackRegisterClass, SignedImm8Operand);
+  let EncoderMethod = "getMemEncoding";
+}
+
+def STAsr  : WDCStoreInstructionStackRelative<0x83, "STA", mem_stack>;
 def RTL    : WDCReturnInstruction<0x6b, "RTL">;
+def TSC    : WDCTransferInstruction<0x3B, "TSC", AccumulatorRegisterClass, StackRegisterClass>;
+def TCS    : WDCTransferInstruction<0x1B, "TCS", StackRegisterClass, AccumulatorRegisterClass>;
+def CLC    : WDCTransferInstruction<0x18, "CLC", StatusReg, StatusReg>;
+def ADCi   : WDCLogicInstructionImmediate<0x69, add, "ADC", SignedImm16Operand>;
 
 let isReturn=1, isTerminator=1, isBarrier=1, hasCtrlDep=1 in {
   def RetRTL : WDCPseudoInst<(outs), (ins), "", [(WDCRetNode)]>;
@@ -30,3 +42,4 @@ let isReturn=1, isTerminator=1, isBarrier=1, hasCtrlDep=1 in {
 
 // Small immediates
 def : Pat<(i16 SignedImm16Pattern:$in), (LDAi imm:$in)>;
+

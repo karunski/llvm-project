@@ -46,6 +46,27 @@ MachineBasicBlock &MBB = *MI.getParent();
   return true;
 }
 
+void llvm::WDCSEInstrInfo::adjustStackPtr(unsigned SP, int64_t Amount,
+                                          MachineBasicBlock &MBB,
+                                          MachineBasicBlock::iterator I) const {
+  const auto debugLoc = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
+  // unsigned ADDu = Cpu0::ADDu;
+  // unsigned ADDiu = Cpu0::ADDiu;
+
+  assert(isInt<16>(Amount) && "stack adjustment amount was too great");
+  if (isInt<16>(Amount)) {
+    // addiu sp, sp, amount
+    BuildMI(MBB, I, debugLoc, get(WDC::CLC));
+    BuildMI(MBB, I, debugLoc, get(WDC::TSC));
+    BuildMI(MBB, I, debugLoc, get(WDC::ADCi), WDC::A).addReg(WDC::A).addImm(Amount);
+    BuildMI(MBB, I, debugLoc, get(WDC::TCS));
+  }
+  // else { // Expand immediate that doesn't fit in 16-bit.
+  //   unsigned Reg = loadImmediate(Amount, MBB, I, DL, nullptr);
+  //   BuildMI(MBB, I, DL, get(ADDu), SP).addReg(SP).addReg(Reg, RegState::Kill);
+  // }
+}
+
 void llvm::WDCSEInstrInfo::expandRTL(MachineBasicBlock &MBB,
                                      MachineBasicBlock::iterator I) const {
   BuildMI(MBB, I, I->getDebugLoc(), get(WDC::RTL));

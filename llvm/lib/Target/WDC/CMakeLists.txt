@@ -37,6 +37,7 @@ add_llvm_target(WDCCodeGen
   WDCSEISelLowering.cpp
   WDCMCAsmInfo.cpp
   WDCAsmPrinter.cpp
+  WDCMachineFunction.cpp
 
   LINK_COMPONENTS
   Analysis

@@ -82,4 +82,6 @@ def StatusReg : RegisterClass<"WDC", [i8], 8, (add P)>;
 //@Architectural Registers class
 def ArchRegs : RegisterClass<"WDC", [i16], 8, (add PC, S)>;
 
+def StackRegisterClass: RegisterClass<"WDC", [i16], 8, (add S)>;
+
 def OutRegs : RegisterClass<"WDC", [i16], 8, (add A, X, Y)>;

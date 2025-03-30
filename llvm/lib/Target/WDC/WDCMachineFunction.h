@@ -30,29 +30,35 @@ namespace llvm {
 /// WDC target-specific information for each MachineFunction.
 class WDCFunctionInfo : public MachineFunctionInfo {
 public:
-  WDCFunctionInfo(MachineFunction& MF)
-  : MF(MF), 
-    VarArgsFrameIndex(0), 
-    MaxCallFrameSize(0)
-    {}
+  explicit WDCFunctionInfo(MachineFunction& machineFunc);
 
   ~WDCFunctionInfo();
 
   int getVarArgsFrameIndex() const { return VarArgsFrameIndex; }
   void setVarArgsFrameIndex(int Index) { VarArgsFrameIndex = Index; }
 
-private:
-  virtual void anchor();
+  unsigned getSRetReturnReg() const { return SRetReturnReg; }
+  void setSRetReturnReg(unsigned Reg) { SRetReturnReg = Reg; }
 
+  void createEhDataRegsFI();
+  int getEhDataRegFI(unsigned Reg) const { return EhDataRegFI[Reg]; }
+
+private:
   MachineFunction& MF;
 
     /// VarArgsFrameIndex - FrameIndex for start of varargs area.
-  int VarArgsFrameIndex;
+  int VarArgsFrameIndex = 0;
 
-  unsigned MaxCallFrameSize;
+  unsigned MaxCallFrameSize = 0;
+
+  /// SRetReturnReg - Some subtargets require that sret lowering includes
+  /// returning the value of the returned struct in a register. This field
+  /// holds the virtual register into which the sret argument is passed.
+  unsigned SRetReturnReg;
+
+  /// Frame objects for spilling eh data registers.
+  int EhDataRegFI[2] = {};
 };
-//@1 }
-
 } // end of namespace llvm
 
 #endif // WDC_MACHINE_FUNCTION_INFO_H
