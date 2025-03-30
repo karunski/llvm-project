@@ -91,7 +91,7 @@ def WDCInstrInfo : InstrInfo;
 class Proc<string Name, list<SubtargetFeature> Features>
  : Processor<Name, WDCGenericItineraries, Features>;
 
-def : Proc<"WDC",  []>;
+def : Proc<"65c816", []>;
 //def : Proc<"cpu032II", [FeatureCpu032II]>;
 // Above make Cpu0GenSubtargetInfo.inc set feature bit as the following order
 // enum {

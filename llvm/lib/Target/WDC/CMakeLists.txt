@@ -17,6 +17,8 @@ add_public_tablegen_target(WDCCommonTableGen)
 # WDCCodeGen should match with LLVMBuild.txt WDCCodeGen
 add_llvm_target(WDCCodeGen
   WDCTargetMachine.cpp
+  WDCSubtarget.cpp
+  WDCFrameLowering.cpp
 
   LINK_COMPONENTS
   Analysis

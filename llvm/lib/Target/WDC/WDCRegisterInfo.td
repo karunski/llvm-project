@@ -77,9 +77,9 @@ def AccumulatorRegisterClass : RegisterClass<"WDC", [i16], 8, (add A)>;
 def IndexRegs : RegisterClass<"WDC", [i16], 8, (add X, Y)>;
 
 //@Status Registers class
-def StatusReg : RegisterClass<"WDC", [i8], 8, (add S)>;
+def StatusReg : RegisterClass<"WDC", [i8], 8, (add P)>;
 
 //@Architectural Registers class
-def ArchRegs : RegisterClass<"WDC", [i16], 8, (add PC)>;
+def ArchRegs : RegisterClass<"WDC", [i16], 8, (add PC, S)>;
 
 def OutRegs : RegisterClass<"WDC", [i16], 8, (add A, X, Y)>;
