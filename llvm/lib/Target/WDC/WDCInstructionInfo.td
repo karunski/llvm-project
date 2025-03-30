@@ -52,6 +52,7 @@ def CMPi : WDCImmediateInstruction<0xc9, (outs StatusReg:$sr), (ins AccumulatorR
                                    [/*(set StatusReg:$sr, (seteq AccumulatorRegisterClass:$src, UnsignedImm16Pattern:$constant))*/]>;
 }
 
+def EORi : WDCLogicInstructionImmediate<0x49, xor, "EOR", UnsignedImm16Operand>;
 def EORsr : InstructionLogicStackRelative<0x43, "EOR", EORsrNode>;
 
 def SUBsr : ADDSUBStackRelativePseudo<SUBsrNode>;
@@ -92,6 +93,6 @@ def XBA : WDCImpliedInstruction<0xEB, (outs AccumulatorRegisterClass:$dst), (ins
                                 "XBA", [(set AccumulatorRegisterClass:$dst, (bswap AccumulatorRegisterClass:$src))]>;
 
 // Small immediates
+def : Pat<(i16 SignedImm16Pattern:$in), (LDAi imm:$in)>;
 def : Pat<(seteq AccumulatorRegisterClass:$src, UnsignedImm16Pattern:$const), (ANDi (LSR (COPY_TO_REGCLASS (CMPi AccumulatorRegisterClass:$src, imm:$const), AccumulatorRegisterClass)), 1)>;
 // def : Pat<(zext StatusReg:$in), (ANDi (COPY_TO_REGCLASS $in, AccumulatorRegisterClass), 0x00FF)>;
-def : Pat<(i16 SignedImm16Pattern:$in), (LDAi imm:$in)>;
