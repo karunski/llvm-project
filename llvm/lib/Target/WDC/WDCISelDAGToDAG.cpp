@@ -77,7 +77,9 @@ class WDCDAGToDAGISel : public SelectionDAGISel {
   
     // Complex Pattern.
     bool SelectAddr(SDNode *Parent, SDValue N, SDValue &Base, SDValue &Offset);
-  
+
+    bool SelectFrameIndex(SDNode *Parent, SDValue addressvalue, SDValue &Base);
+
     // getImm - Return a target constant with the specified value.
     inline SDValue getImm(const SDNode *Node, unsigned Imm) {
       return CurDAG->getTargetConstant(Imm, SDLoc(Node), Node->getValueType(0));
@@ -127,6 +129,16 @@ bool WDCDAGToDAGISel::SelectAddr(SDNode *Parent, SDValue addressvalue,
   return true;
 }
 
+bool WDCDAGToDAGISel::SelectFrameIndex(SDNode *Parent, SDValue addressvalue,
+                                       SDValue &Base) {
+  if (const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(addressvalue); frameIndexNode) {
+    Base   = CurDAG->getTargetFrameIndex(frameIndexNode->getIndex(), addressvalue.getValueType());
+    return true;
+  }
+  return false;
+}
+
+
 //@selectNode
 bool WDCDAGToDAGISel::trySelect(SDNode *Node) {
   unsigned Opcode = Node->getOpcode();
@@ -170,7 +182,7 @@ void WDCDAGToDAGISel::Select(SDNode *Node) {
   if (trySelect(Node))
     return;
 
-  switch(Opcode) {
+  switch(Opcode) {    
   default: break;
 
   }

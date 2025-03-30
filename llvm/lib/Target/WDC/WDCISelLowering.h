@@ -62,7 +62,10 @@ namespace llvm {
       Wrapper,
       DynAlloc,
 
-      Sync
+      Sync,
+
+      ADDsr,
+      ADDi
     };
   }
 
@@ -166,9 +169,11 @@ namespace llvm {
                         const SmallVectorImpl<SDValue> &OutVals,
                         const SDLoc &dl, SelectionDAG &DAG) const override;
 
+    SDValue LowerOperation(SDValue node, SelectionDAG &DAG) const override;
+
+    SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
+
   };
-  const WDCTargetLowering *
-  createWDCSETargetLowering(const WDCTargetMachine &TM, const WDCSubtarget &STI);
 }
 
 #endif // WDCISELLOWERING_H

@@ -55,6 +55,8 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::DivRem:            return "WDCISD::DivRem";
   case WDCISD::DivRemU:           return "WDCISD::DivRemU";
   case WDCISD::Wrapper:           return "WDCISD::Wrapper";
+  case WDCISD::ADDi:              return "WDCISD::ADDi";
+  case WDCISD::ADDsr:             return "WDCISD::ADDsr";
   default:                         return NULL;
   }
 }
@@ -68,11 +70,13 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   // Set up the register classes
   addRegisterClass(MVT::i16, &WDC::AccumulatorRegisterClassRegClass);
   addRegisterClass(MVT::i16, &WDC::IndexRegsRegClass);
-  // addRegisterClass(MVT::i16, &WDC::CPURegsRegClass);
 
   // must, computeRegisterProperties - Once all of the register classes are
   //  added, this allows us to compute derived properties we expose.
   computeRegisterProperties(Subtarget.getRegisterInfo());
+
+  setOperationAction(ISD::ADD, MVT::i16, LegalizeAction::Custom);
+  // setOperationAction(ISD::UADDO_CARRY, MVT::i16, LegalizeAction::Legal);
 }
 
 std::unique_ptr<const WDCTargetLowering> WDCTargetLowering::create(const WDCTargetMachine &TM,
@@ -177,7 +181,7 @@ WDCTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
         report_fatal_error("Can't return value from vararg function in memory");
       }
 
-      const auto offset = VA.getLocMemOffset() + 3 /* for return address */;
+      const auto offset = VA.getLocMemOffset();
       const auto objSize = VA.getLocVT().getStoreSize();
       // Create the frame index object for the memory location.
       const auto frameIndex = frameInfo.CreateFixedObject(objSize, offset, false);
@@ -222,6 +226,44 @@ WDCTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
 
   // Return on Cpu0 is always a "ret $lr"
   return DAG.getNode(WDCISD::Ret, DL, MVT::Other, RetOps);
+}
+
+SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
+                                                SelectionDAG &DAG) const {
+  const SDLoc debugLoc{node};
+
+  if (node.getOpcode() == ISD::ADD)
+  {
+    const SDValue operands[] = {node.getOperand(0), node.getOperand(1) };
+    //const EVT types[] = {operands[0].getValueType(), operands[1].getValueType()};
+    const SDNode * nodes[] = {operands[0].getNode(), operands[1].getNode()};
+    const unsigned nodesOpcodes[] = {nodes[0]->getOpcode(), nodes[1]->getOpcode()};
+    if (nodesOpcodes[1] == ISD::LOAD)
+    {
+      const auto loadNode = nodes[1];
+      const SDValue loadOperands[] = {loadNode->getOperand(0), loadNode->getOperand(1), loadNode->getOperand(2)};
+      const SDNode * loadOperandNodes[] = {loadOperands[0].getNode(), loadOperands[1].getNode(), loadOperands[2].getNode()};
+      // const unsigned loadOperandOpcodes[] = {loadOperandNodes[0]->getOpcode(), loadOperandNodes[1]->getOpcode()};
+      if (const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(loadOperandNodes[1]); frameIndexNode)
+      {
+        return DAG.getNode(
+            WDCISD::ADDsr, debugLoc, {node.getValueType()},
+            {loadOperands[0], operands[0], loadOperands[1]});
+      }
+    }
+    else if (nodesOpcodes[1] == ISD::Constant)
+    {
+      return DAG.getNode(WDCISD::ADDi, debugLoc, {node.getValueType()},
+                         {operands[0], operands[1]});
+    }
+  }
+
+  return TargetLowering::LowerOperation(node, DAG);
+}
+
+SDValue llvm::WDCTargetLowering::PerformDAGCombine(SDNode *nodeptr,
+                                                   DAGCombinerInfo &DCI) const {
+  return SDValue();
 }
 
 llvm::WDCTargetLowering::WDCCallingConvention::WDCCallingConvention(

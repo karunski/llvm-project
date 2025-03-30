@@ -79,10 +79,18 @@ private:
                                 const TargetRegisterInfo *TRI,
                                 int64_t Offset) const;
 
+  MachineInstr *foldMemoryOperandImpl(MachineFunction &MF, MachineInstr &MI,
+                                      ArrayRef<unsigned> Ops,
+                                      MachineBasicBlock::iterator InsertPt,
+                                      int FrameIndex,
+                                      LiveIntervals *LIS = nullptr,
+                                      VirtRegMap *VRM = nullptr) const override;
+
   MachineMemOperand *GetMemOperand(MachineBasicBlock &MBB, int FI,
                                    MachineMemOperand::Flags Flags) const;
 
   void expandRTL(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
+  void expandADD(MachineBasicBlock &MBB, MachineBasicBlock::iterator I, unsigned realOpcode) const;
 };
 }
 

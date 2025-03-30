@@ -69,6 +69,18 @@ getReservedRegs(const MachineFunction &MF) const {
 //@eliminateFrameIndex {
 //- If no eliminateFrameIndex(), it will hang on run. 
 // pure virtual method
+
+//  For 5 local i16 vars + 1 return i16:
+//  SP+9+3 FrameIndex -1 ObjectOffset 0   |
+//  SP+    return addr (3 bytes)
+//  SP+9   FrameIndex 0  ObjectOffset  -2 |
+//  SP+7   FrameIndex 1  ObjectOffset  -4 |- local vars 2 * 5 = 10 bytes
+//  SP+5   FrameIndex 2  ObjectOffset  -6 |
+//  SP+3   FrameIndex 3  ObjectOffset  -8 |
+//  SP+1   FrameIndex 4  ObjectOffset -10 |
+//  SP
+// Actual offset = 10 bytes (frame size) + ObjectOffset + 1 + (overhead for return val etc)
+
 // FrameIndex represent objects inside a abstract stack.
 // We must replace FrameIndex with an stack/frame pointer
 // direct reference.
@@ -77,7 +89,7 @@ bool WDCRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
                                           RegScavenger *RS) const {
   auto &machineInstruction = *II;
   auto &machineFunction = *machineInstruction.getParent()->getParent();
-  // auto &machineFrameInfo = machineFunction.getFrameInfo();
+  //auto &machineFrameInfo = machineFunction.getFrameInfo();
   // auto *wdcFunctionInfo = machineFunction.getInfo<WDCFunctionInfo>();
 
   unsigned i = 0;
@@ -92,7 +104,9 @@ bool WDCRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
   const auto frameIndex = machineInstruction.getOperand(i).getIndex();
   const auto stackSize = machineFunction.getFrameInfo().getStackSize();
-  const auto stackPointerOffset = machineFunction.getFrameInfo().getObjectOffset(frameIndex);
+  static const auto FrameReservedOverhead = 3; /* return address is 3 bytes */
+  const auto stackPointerOffset = machineFunction.getFrameInfo().getObjectOffset(frameIndex)
+    + (frameIndex < 0 ? FrameReservedOverhead : 0)  + 1 /* SP is always one below actual stack top */;
 
   LLVM_DEBUG(errs() << "frameIndex : " << frameIndex << "\n"
                     << "stackPointerOffset   : " << stackPointerOffset << "\n"
@@ -123,32 +137,36 @@ bool WDCRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   // adjusted
   //   by adding the size of the stack:
   //   incoming argument, callee-saved register location or local variable.
-  const auto Offset = stackPointerOffset + stackSize +
-                      machineInstruction.getOperand(i + 1).getImm();
+  if (i + 1 < machineInstruction.getNumOperands())
+  {
+    // this instruction has an offset operand after the frameIndex operand.
+    const auto Offset = stackPointerOffset + stackSize + machineInstruction.getOperand(i + 1).getImm();
+    LLVM_DEBUG(errs() << "Offset     : " << Offset << "\n" );
+    machineInstruction.getOperand(i).ChangeToRegister(frameRegister, false);
+    machineInstruction.getOperand(i + 1).ChangeToImmediate(Offset);
 
-  LLVM_DEBUG(errs() << "Offset     : " << Offset << "\n" << "<--------->\n");
-
-  // If MI is not a debug value, make sure Offset fits in the 16-bit immediate
-  // field.
-  if (!machineInstruction.isDebugValue() && !isInt<8>(Offset)) {
-    errs() << "!!!ERROR!!! Not support large frame over 8-bit at this point.\n"
-           << "Though CH3_5 support it."
-           << "Reference: "
-              "http://jonathan2251.github.io/lbd/"
-              "backendstructure.html#large-stack\n"
-           << "However the CH9_3, dynamic-stack-allocation-support bring "
-              "instruction "
-              "move $fp, $sp that make it complicated in coding against the "
-              "tutoral "
-              "purpose of Cpu0.\n"
-           << "Reference: "
-              "http://jonathan2251.github.io/lbd/"
-              "funccall.html#dynamic-stack-allocation-support\n";
-    assert(0 && "(!MI.isDebugValue() && !isInt<8>(Offset))");
+    // If MI is not a debug value, make sure Offset fits in the 16-bit immediate
+    // field.
+    if (!machineInstruction.isDebugValue() && !isInt<8>(Offset)) {
+      errs() << "stack offset dosn't fit in 8 bits";
+      assert(0 && "(!MI.isDebugValue() && !isInt<8>(Offset))");
+    }
   }
+  else
+  {
+    // this is the scheme I cooked up when inventing ADDsr.  Just one operand, the frame index, 
+    // is turned into the Offset.  The stack register is implied.
+    const auto offset = stackPointerOffset + stackSize;
+    LLVM_DEBUG(errs() << "Offset " << offset << " = stackPointerOffset " << stackPointerOffset << " + stackSize " << stackSize << "\n");
+    machineInstruction.getOperand(i).ChangeToImmediate(offset);
 
-  machineInstruction.getOperand(i).ChangeToRegister(frameRegister, false);
-  machineInstruction.getOperand(i + 1).ChangeToImmediate(Offset);
+    if (!machineInstruction.isDebugValue() && !isInt<8>(offset)) {
+      errs() << "stack offset dosn't fit in 8 bits";
+      assert(0 && "(!MI.isDebugValue() && !isInt<8>(Offset))");
+    }
+  }
+  LLVM_DEBUG(errs() << "<--------->\n");
+
   return false;
 }
 //}

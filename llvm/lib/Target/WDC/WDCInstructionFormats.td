@@ -89,11 +89,17 @@ def SignedImm8Operand : Operand<i8> {
   let DecoderMethod="DecodeSimm8";
 }
 
+def stack_offset : Operand<i16> {
+  let PrintMethod = "printStackOffset";
+}
+
 // Pattern 
 def SignedImm16Pattern  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
 def UnsignedImm16Pattern : PatLeaf<(imm), [{ return isUInt<16>(N->getZExtValue()); }]>;
 def SignedImm8Pattern : PatLeaf<(imm), [{ return isInt<8>(N->getSExtValue()); }]>;
-def SignedFrameIndexPattern : PatLeaf<(frameindex)>;
+
+let WantsRoot = true in
+def addr : ComplexPattern<iPTR, 2, "SelectAddr", [frameindex]>;
 
 class WDCLogicInstructionImmediate<
     bits<8>   op,
@@ -129,6 +135,19 @@ class WDCAddSubCarryInstructionImmediate<
   let DisableEncoding = "$dst,$accumulator";
 }
 
+class WDCAddSubCarryInstructionStackRelative<bits<8> op, SDNode opNode, string asmstr>
+: WDCStackRelativeInstruction<
+    op,
+    (outs AccumulatorRegisterClass:$dst),
+    (ins AccumulatorRegisterClass:$accumulator, stack_offset:$spoffset),
+    !strconcat(asmstr, "\t$spoffset"),
+    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, (i16 imm:$spoffset)))]
+  >
+{
+  let DisableEncoding = "$dst,$accumulator";
+  let mayLoad = 1;
+}
+
 class WDCLoadInstructionImmediate<
     bits<8> op,
     string  asmstr,
@@ -144,14 +163,14 @@ class WDCLoadInstructionImmediate<
   let DisableEncoding = "$dst";
 }
 
-
-
-class WDCPseudoInst<dag outs, dag ins, string asmstr, list<dag> pattern>:
-      WDCInst<outs, ins, asmstr, pattern> {
+class WDCPseudoInst<dag outs, dag ins, list<dag> pattern>:
+      WDCInst<outs, ins, "", pattern> {
   let isCodeGenOnly = 1;
   let isPseudo = 1;
   let m_addrMode = WDCAddressModePseudo;
 }
+
+
 
 class WDCReturnInstruction<bits<8> opcode, string asmstr>
 : WDCImpliedInstruction<opcode, (outs), (ins), asmstr, []>
@@ -159,14 +178,17 @@ class WDCReturnInstruction<bits<8> opcode, string asmstr>
   let isReturn = 1;
 }
 
-class WDCTransferInstruction<bits<8> opcode, string asmstr, RegisterClass rcdest, RegisterClass rcsrc>
-: WDCImpliedInstruction<opcode, (outs rcdest:$dst), (ins rcsrc:$src), asmstr, []>
+class WDCTransferInstruction<bits<8> opcode, string asmstr>
+: WDCImpliedInstruction<opcode, (outs), (ins), asmstr, []>
 {
-  let DisableEncoding = "$src,$dst";
+  // let DisableEncoding = "$src,$dst";
 }
 
-let WantsRoot = true in
-def addr : ComplexPattern<iPTR, 2, "SelectAddr", [frameindex]>;
+class WDCStatusControlInstruction<bits<8> opcode, string asmstr, RegisterClass dest_rc, list<dag> pattern>
+: WDCImpliedInstruction<opcode, (outs dest_rc:$carryout), (ins), asmstr, pattern>
+{
+  let DisableEncoding = "$carryout";
+}
 
 class WDCStoreInstructionStackRelative<bits<8> opcode, string asmstr, Operand operand>
 : WDCStackRelativeInstruction<
@@ -192,5 +214,6 @@ class WDCLoadInstructionStackRelative<
     [(set AccumulatorRegisterClass:$dst, (load addr:$addr))]>
 {
   let DisableEncoding = "$dst";
+  let canFoldAsLoad = 1;
 }
 

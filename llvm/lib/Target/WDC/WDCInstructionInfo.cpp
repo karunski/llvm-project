@@ -87,6 +87,12 @@ MachineBasicBlock &MBB = *MI.getParent();
   case WDC::RetRTL:
     expandRTL(MBB, MI);
     break;
+  case WDC::ADDi:
+    expandADD(MBB, MI, WDC::ADCi);
+    break;
+  case WDC::ADDsr:
+    expandADD(MBB, MI, WDC::ADCsr);
+    break;
   }
 
   MBB.erase(MI);
@@ -154,7 +160,23 @@ void llvm::WDCInstrInfo::loadRegFromStack(MachineBasicBlock &basicBlock,
       .addMemOperand(MMO);
 }
 
+MachineInstr *llvm::WDCInstrInfo::foldMemoryOperandImpl(
+    MachineFunction &MF, MachineInstr &MI, ArrayRef<unsigned> Ops,
+    MachineBasicBlock::iterator InsertPt, int FrameIndex, LiveIntervals *LIS,
+    VirtRegMap *VRM) const {
+  return nullptr;
+}
+
 void llvm::WDCInstrInfo::expandRTL(MachineBasicBlock &MBB,
                                      MachineBasicBlock::iterator I) const {
   BuildMI(MBB, I, I->getDebugLoc(), get(WDC::RTL));
+}
+
+void llvm::WDCInstrInfo::expandADD(MachineBasicBlock &MBB, MachineBasicBlock::iterator I, const unsigned realOpcode) const {
+  const MachineOperand operands[] = {I->getOperand(0), I->getOperand(1), I->getOperand(2)};
+  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::CLC));
+  BuildMI(MBB, I, I->getDebugLoc(), get(realOpcode))
+      .add(operands[0])
+      .add(operands[1])
+      .add(operands[2]);
 }

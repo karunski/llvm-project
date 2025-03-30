@@ -54,6 +54,8 @@ private:
   }
   void printUnsignedImm(const MCInst *MI, int opNum, raw_ostream &O);
   void printMemOperand(const MCInst *MI, int opNum, raw_ostream &O);
+  void printStackOffset(const MCInst * MI, int opNum, raw_ostream&os);
+
 //#if CH >= CH7_1
   void printMemOperandEA(const MCInst *MI, int opNum, raw_ostream &O);
 //#endif
