@@ -63,7 +63,7 @@ void WDCInstPrinter::printUnsignedImm(const MCInst *MI, int opNum,
                                        raw_ostream &O) {
   const MCOperand &MO = MI->getOperand(opNum);
   if (MO.isImm())
-    O << "#" << format_hex_no_prefix(static_cast<uint16_t>(MO.getImm()), 4);
+    O << "#$" << format_hex_no_prefix(static_cast<uint16_t>(MO.getImm()), 4);
   else
     printOperand(MI, opNum, O);
 }

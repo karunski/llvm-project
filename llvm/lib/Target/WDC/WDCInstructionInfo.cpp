@@ -96,6 +96,9 @@ MachineBasicBlock &MBB = *MI.getParent();
   case WDC::SUBsr:
     expandSUB(MBB, MI, WDC::SBCsr);
     break;
+  case WDC::ROTL:
+    expandROTL(MBB, MI);
+    break;
   case WDC::SRA:
     expandSRA(MBB, MI);
     break;
@@ -199,6 +202,11 @@ void llvm::WDCInstrInfo::expandSUB(MachineBasicBlock &MBB, MachineBasicBlock::it
 }
 
 void llvm::WDCInstrInfo::expandSRA(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const {
-  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::CMPi)).add(I->getOperand(1)).addImm(0x8000);
+  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::CMPi)).addReg(WDC::A).addImm(0x8000);
   BuildMI(MBB, I, I->getDebugLoc(), get(WDC::ROR));
+}
+
+void llvm::WDCInstrInfo::expandROTL(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const {
+  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::ASL));
+  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::ADCi)).addReg(WDC::A).addReg(WDC::A).addImm(0);
 }

@@ -56,6 +56,9 @@ def PLB : WDCStackInstruction<0xAB, "PLB">;
 def ROR : WDCImpliedInstruction<0x2A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                                 "ROR\tA", []>;
 
+def ROTL : WDCPseudoInst<(outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+                         [(set AccumulatorRegisterClass:$dst, (rotl AccumulatorRegisterClass:$src, OnePattern))]>;
+
 def SRA : WDCPseudoInst<(outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                          [(set AccumulatorRegisterClass:$dst, (sra AccumulatorRegisterClass:$src, OnePattern))]>;
 

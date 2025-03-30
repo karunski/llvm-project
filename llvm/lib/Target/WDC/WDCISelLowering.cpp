@@ -78,6 +78,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
 
   setOperationAction(ISD::ADD, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SUB, MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::ROTL, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SHL, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SRA, MVT::i16, LegalizeAction::Custom);
 }
@@ -301,6 +302,9 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
   }
   else if (opcode == ISD::SRA) {
     return ExpandShift(node, DAG, WDC::SRA);
+  }
+  else if (opcode == ISD::ROTL) {
+    return ExpandShift(node, DAG, WDC::ROTL);
   }
 
   return TargetLowering::LowerOperation(node, DAG);
