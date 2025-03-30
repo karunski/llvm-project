@@ -67,6 +67,7 @@ namespace llvm {
       ADDsr,
       ADDi,
       ANDsr,
+      EORsr,
       SUBsr,
       ORAsr,
     };

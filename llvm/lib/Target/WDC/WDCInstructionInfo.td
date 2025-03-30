@@ -40,15 +40,12 @@ let isAdd = 1 in {
   def ADDi : ADDImmediatePseudo;
 }
 
-let Constraints = "$dst = $src" in {
-def ANDsr : WDCStackRelativeInstruction<0x23, (outs AccumulatorRegisterClass:$dst), 
-                                        (ins AccumulatorRegisterClass:$src, StackOffsetOperand:$spoffset), 
-                                        "AND\t$spoffset", 
-                                        [(set AccumulatorRegisterClass:$dst, (ANDsrNode AccumulatorRegisterClass:$src, frameIndexPattern:$spoffset))]>;
-}
+def ANDsr : InstructionLogicStackRelative<0x23, "AND", ANDsrNode>;
 
 def ASL : WDCImpliedInstruction<0x0A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src), 
                                  "ASL\tA", [(set AccumulatorRegisterClass:$dst, (shl AccumulatorRegisterClass:$src, OnePattern))]>;
+
+def EORsr : InstructionLogicStackRelative<0x43, "EOR", EORsrNode>;
 
 def SUBsr : ADDSUBStackRelativePseudo<SUBsrNode>;
 
@@ -56,10 +53,7 @@ def SBCi   : WDCAddSubCarryInstructionImmediate<0xE9, subc, "SBC", UnsignedImm16
 def SBCsr  : WDCAddSubCarryInstructionStackRelative<0xE3,subc, "SBC">;
 
 def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
-def ORAsr  : WDCStackRelativeInstruction<0x03,  (outs AccumulatorRegisterClass:$dst),
-                                         (ins AccumulatorRegisterClass:$src, StackOffsetOperand:$spoffset),
-                                         "ORA\t$spoffset",
-                                         [(set AccumulatorRegisterClass:$dst, (ORAsrNode AccumulatorRegisterClass:$src, frameIndexPattern:$spoffset))]>;
+def ORAsr  : InstructionLogicStackRelative<0x03, "ORA", ORAsrNode>;
 
 def PHB : WDCStackInstruction<0x0B, "PHB">;
 def PLB : WDCStackInstruction<0xAB, "PLB">;

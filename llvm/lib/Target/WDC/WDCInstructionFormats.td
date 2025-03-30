@@ -225,3 +225,19 @@ class WDCLoadInstructionStackRelative<
   let canFoldAsLoad = 1;
 }
 
+class InstructionLogicStackRelative<
+  bits<8> opcode,
+  string  asmstr,
+  SDNode  opnode
+> : WDCStackRelativeInstruction<opcode, 
+                                (outs AccumulatorRegisterClass:$dst),
+                                (ins AccumulatorRegisterClass:$src, StackOffsetOperand:$spoffset),
+                                !strconcat(asmstr, "\t$spoffset"),
+                                [(set AccumulatorRegisterClass:$dst, 
+                                      (opnode AccumulatorRegisterClass:$src, 
+                                              frameIndexPattern:$spoffset)
+                                 )
+                                ]
+    > {
+  let Constraints = "$dst = $src";
+}

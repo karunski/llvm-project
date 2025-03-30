@@ -58,6 +58,7 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::ADDi:              return "WDCISD::ADDi";
   case WDCISD::ADDsr:             return "WDCISD::ADDsr";
   case WDCISD::ANDsr:             return "WDCISD::ANDsr";
+  case WDCISD::EORsr:             return "WDCISD::EORsr";
   case WDCISD::SUBsr:             return "WDCISD::SUBsr";
   case WDCISD::ORAsr:             return "WDCISD::ORAsr";
   default:                        return NULL;
@@ -80,11 +81,12 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
 
   setOperationAction(ISD::ADD,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::AND,  MVT::i16, LegalizeAction::Custom);
-  setOperationAction(ISD::SUB,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::OR,   MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::SUB,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::ROTL, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SHL,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SRA,  MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::XOR,  MVT::i16, LegalizeAction::Custom);
 }
 
 std::unique_ptr<const WDCTargetLowering> WDCTargetLowering::create(const WDCTargetMachine &TM,
@@ -321,7 +323,9 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
   else if (opcode == ISD::SRA) {
     return ExpandShift(node, DAG, WDC::SRA);
   }
-
+  else if (opcode == ISD::XOR) {
+    return LowerStackRelativeOperand(node, DAG, WDCISD::EORsr);
+  }
 
   return TargetLowering::LowerOperation(node, DAG);
 }
