@@ -30,8 +30,8 @@ def UnsignedImm8Operand : Operand<i8> {
   let PrintMethod = "printUnsignedImm8";
 }
 
-// Generic Cpu0 Format
-class WDCInst<dag outs, dag ins, string asmstr, list<dag> pattern> : Instruction
+// Generic WDC Instruction Format
+class Inst<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern> : Instruction
 {
   // Inst and Size: for tablegen(... -gen-emitter) and 
   // tablegen(... -gen-disassembler) in CMakeLists.txt
@@ -40,7 +40,8 @@ class WDCInst<dag outs, dag ins, string asmstr, list<dag> pattern> : Instruction
 
   let Size = 0;
 
-  bits<8> Opcode = 0;
+  // All instructions have an 8-bit opcode.
+  bits<8> Opcode = opcode;
 
   let OutOperandList = outs;
   let InOperandList  = ins;
@@ -53,49 +54,48 @@ class WDCInst<dag outs, dag ins, string asmstr, list<dag> pattern> : Instruction
   let hasNoSchedulingInfo = true;
 }
 
-class WDCImmediateInstruction<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
-: WDCInst<outs, ins, asmstr, pattern>
+class InstImm16<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
+: Inst<opcode, outs, ins, asmstr, pattern>
 {
   field bits<24> Inst;
   bits<16> constant;
   let Size = 3;
-  let Opcode = opcode;
   let Inst{23-8} = constant;
-  let Inst{7-0} = opcode;
+  let Inst{7-0} = Opcode;
   let m_addrMode = WDCAddressModeImmediate;
 }
 
-class InstructionImm8<bits<8> opcode, string asmstr> 
-: WDCInst<(outs), (ins UnsignedImm8Operand:$const), !strconcat(asmstr, "\t$const"), []> {
+class InstImm8<bits<8> opcode, string asmstr> 
+: Inst<opcode, (outs), (ins UnsignedImm8Operand:$const), !strconcat(asmstr, "\t$const"), []> {
   field bits<16> Inst;
   bits<8> const;
-  let Opcode = opcode;
   let Size = 2;
   let Inst{7-0} = Opcode;
   let Inst{15-8} = const;
 }
 
-class WDCImpliedInstruction<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
-: WDCInst<outs, ins, asmstr, pattern>
+class InstImpl<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
+: Inst<opcode, outs, ins, asmstr, pattern>
 {
   field bits<8> Inst;
   let Size = 1;
-  let Opcode = opcode;
-  let Inst = opcode;
+  let Inst = Opcode;
   let m_addrMode = WDCAddressModeImplied;
 }
 
-class WDCStackRelativeInstruction<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
-: WDCInst<outs, ins, asmstr, pattern>
+class InstStkRel<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
+: Inst<opcode, outs, ins, asmstr, pattern>
 {
   field bits<16> Inst;
   bits<8> spoffset;
   let Size = 2;
-  let Opcode = opcode;
   let Inst{15-8} = spoffset; 
-  let Inst{7-0} = opcode;
+  let Inst{7-0} = Opcode;
   let mayLoad = true;
 }
+
+// class InstructionAbsoluteLong<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
+// : WDCInst<>
 
 def SignedImm16Operand      : Operand<i16> {
   let DecoderMethod= "DecodeSimm16";
@@ -128,7 +128,7 @@ class WDCLogicInstructionImmediate<
     string    asmstr,
     Operand   oprnd
 >
-: WDCImmediateInstruction<
+: InstImm16<
     op,
     (outs AccumulatorRegisterClass:$dst),
     (ins AccumulatorRegisterClass:$accumulator, oprnd:$constant),
@@ -147,7 +147,7 @@ class WDCAddSubCarryInstructionImmediate<
     string    asmstr,
     Operand   oprnd
 >
-: WDCImmediateInstruction<
+: InstImm16<
     op,
     (outs AccumulatorRegisterClass:$dst),
     (ins AccumulatorRegisterClass:$accumulator, oprnd:$constant),
@@ -159,7 +159,7 @@ class WDCAddSubCarryInstructionImmediate<
 }
 
 class WDCAddSubCarryInstructionStackRelative<bits<8> op, SDNode opNode, string asmstr>
-: WDCStackRelativeInstruction<
+: InstStkRel<
     op,
     (outs AccumulatorRegisterClass:$dst),
     (ins AccumulatorRegisterClass:$accumulator, StackOffsetOperand:$spoffset),
@@ -175,7 +175,7 @@ class WDCLoadInstructionImmediate<
     bits<8> op,
     string  asmstr,
     Operand operand>
-: WDCImmediateInstruction<
+: InstImm16<
     op,
     (outs AccumulatorRegisterClass:$dst),
     (ins operand:$constant),
@@ -186,40 +186,38 @@ class WDCLoadInstructionImmediate<
   let DisableEncoding = "$dst";
 }
 
-class WDCPseudoInst<dag outs, dag ins, list<dag> pattern>:
-      WDCInst<outs, ins, "", pattern> {
+class InstPseudo<dag outs, dag ins, list<dag> pattern>:
+      Inst<0, outs, ins, "", pattern> {
   let isCodeGenOnly = 1;
   let isPseudo = 1;
   let m_addrMode = WDCAddressModePseudo;
 }
 
-
-
 class WDCReturnInstruction<bits<8> opcode, string asmstr>
-: WDCImpliedInstruction<opcode, (outs), (ins), asmstr, []>
+: InstImpl<opcode, (outs), (ins), asmstr, []>
 {
   let isReturn = 1;
 }
 
 class WDCTransferInstruction<bits<8> opcode, string asmstr>
-: WDCImpliedInstruction<opcode, (outs), (ins), asmstr, []>
+: InstImpl<opcode, (outs), (ins), asmstr, []>
 {
   // let DisableEncoding = "$src,$dst";
 }
 
 class WDCStatusControlInstruction<bits<8> opcode, string asmstr, RegisterClass dest_rc, list<dag> pattern>
-: WDCImpliedInstruction<opcode, (outs dest_rc:$carryout), (ins), asmstr, pattern>
+: InstImpl<opcode, (outs dest_rc:$carryout), (ins), asmstr, pattern>
 {
   let DisableEncoding = "$carryout";
 }
 
 class WDCStackInstruction<bits<8> opcode, string asmstr>
-: WDCImpliedInstruction<opcode, (outs), (ins), asmstr, []>
+: InstImpl<opcode, (outs), (ins), asmstr, []>
 {
 }
 
 class WDCStoreInstructionStackRelative<bits<8> opcode, string asmstr>
-: WDCStackRelativeInstruction<
+: InstStkRel<
   opcode,
   (outs),
   (ins AccumulatorRegisterClass:$accumulator, StackOffsetOperand:$spoffset),
@@ -233,7 +231,7 @@ class WDCStoreInstructionStackRelative<bits<8> opcode, string asmstr>
 class WDCLoadInstructionStackRelative<
   bits<8> opcode,
   string asmstr>
-: WDCStackRelativeInstruction<
+: InstStkRel<
     opcode,
     (outs AccumulatorRegisterClass:$dst),
     (ins StackOffsetOperand:$spoffset),
@@ -248,7 +246,7 @@ class InstructionLogicStackRelative<
   bits<8> opcode,
   string  asmstr,
   SDNode  opnode
-> : WDCStackRelativeInstruction<opcode, 
+> : InstStkRel<opcode, 
                                 (outs AccumulatorRegisterClass:$dst),
                                 (ins AccumulatorRegisterClass:$src, StackOffsetOperand:$spoffset),
                                 !strconcat(asmstr, "\t$spoffset"),

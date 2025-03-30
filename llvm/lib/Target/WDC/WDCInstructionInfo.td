@@ -37,12 +37,12 @@ let isAdd = 1 in {
 def ANDi : WDCLogicInstructionImmediate<0x29, and, "AND", UnsignedImm16Operand>;
 def ANDsr : InstructionLogicStackRelative<0x23, "AND", ANDsrNode>;
 
-def ASL : WDCImpliedInstruction<0x0A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src), 
+def ASL : InstImpl<0x0A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src), 
                                  "ASL\tA", [(set AccumulatorRegisterClass:$dst, (shl AccumulatorRegisterClass:$src, OnePattern))]>;
 
-def CMPi : WDCImmediateInstruction<0xc9, (outs StatusReg:$sr), (ins AccumulatorRegisterClass:$src, UnsignedImm16Operand:$constant),
+def CMPi : InstImm16<0xc9, (outs StatusReg:$sr), (ins AccumulatorRegisterClass:$src, UnsignedImm16Operand:$constant),
                                    "CMP\t$constant", []>;
-def CMPsr : WDCStackRelativeInstruction<0xc3, (outs StatusReg:$sr),
+def CMPsr : InstStkRel<0xc3, (outs StatusReg:$sr),
                                         (ins AccumulatorRegisterClass:$src, StackOffsetOperand:$spoffset),
                                         "CMP\t$spoffset", []>;
 
@@ -54,7 +54,7 @@ def SUBsr : ADDSUBStackRelativePseudo<SUBsrNode>;
 def SBCi   : WDCAddSubCarryInstructionImmediate<0xE9, subc, "SBC", UnsignedImm16Operand>;
 def SBCsr  : WDCAddSubCarryInstructionStackRelative<0xE3,subc, "SBC">;
 
-def LSR : WDCImpliedInstruction<0x4A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+def LSR : InstImpl<0x4A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                                 "LSR\tA", 
                                 [(set AccumulatorRegisterClass:$dst, (srl AccumulatorRegisterClass:$src, OnePattern))]>;
 
@@ -68,32 +68,32 @@ def PLB : WDCStackInstruction<0xAB, "PLB">;
 def PLD : WDCStackInstruction<0x2B, "PLD">;
 def PLP : WDCStackInstruction<0x28, "PLP">;
 
-def ROL : WDCImpliedInstruction<0x2a, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+def ROL : InstImpl<0x2a, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                                 "ROL\tA", []>;
-def ROR : WDCImpliedInstruction<0x6A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+def ROR : InstImpl<0x6A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                                 "ROR\tA", []>;
 
-def ROTL : WDCPseudoInst<(outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+def ROTL : InstPseudo<(outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                          [(set AccumulatorRegisterClass:$dst, (rotl AccumulatorRegisterClass:$src, OnePattern))]>;
 
-def REP : InstructionImm8<0xC2, "REP">;
-def SEP : InstructionImm8<0xE2, "SEP">;
+def REP : InstImm8<0xC2, "REP">;
+def SEP : InstImm8<0xE2, "SEP">;
 
 let isReturn=1, isTerminator=1, isBarrier=1, hasCtrlDep=1 in {
-  def RetRTL : WDCPseudoInst<(outs), (ins), [(WDCRetNode)]>;
+  def RetRTL : InstPseudo<(outs), (ins), [(WDCRetNode)]>;
 }
 
-def SRA : WDCPseudoInst<(outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+def SRA : InstPseudo<(outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                          [(set AccumulatorRegisterClass:$dst, (sra AccumulatorRegisterClass:$src, OnePattern))]>;
 
 // "Transfer Carry to least significant bit of A" == ROL A 
-def TCA : WDCPseudoInst<(outs AccumulatorRegisterClass:$dst), (ins StatusReg:$src), []>;
+def TCA : InstPseudo<(outs AccumulatorRegisterClass:$dst), (ins StatusReg:$src), []>;
 def TSC : WDCTransferInstruction<0x3B, "TSC">;
 def TDC : WDCTransferInstruction<0x7D, "TDC">;
 def TCS : WDCTransferInstruction<0x1B, "TCS">;
 def TCD : WDCTransferInstruction<0x5B, "TCD">;
 
-def XBA : WDCImpliedInstruction<0xEB, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+def XBA : InstImpl<0xEB, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                                 "XBA", [(set AccumulatorRegisterClass:$dst, (bswap AccumulatorRegisterClass:$src))]>;
 
 // Small immediates

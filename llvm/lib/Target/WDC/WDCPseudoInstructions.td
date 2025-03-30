@@ -1,5 +1,5 @@
 class ADDSUBStackRelativePseudo<SDNode PseudoOpNode>
-: WDCPseudoInst<
+: InstPseudo<
   (outs AccumulatorRegisterClass:$dst),
   (ins AccumulatorRegisterClass:$src, Operand<i16>:$slot),
   [(set AccumulatorRegisterClass:$dst, (PseudoOpNode AccumulatorRegisterClass:$src, frameIndexPattern:$slot))]
@@ -13,7 +13,7 @@ class ADDSUBStackRelativePseudo<SDNode PseudoOpNode>
 }
 
 class ADDImmediatePseudo
-: WDCPseudoInst<
+: InstPseudo<
   (outs AccumulatorRegisterClass:$dst),
   (ins AccumulatorRegisterClass:$src, Operand<i16>:$constant),
   [(set AccumulatorRegisterClass:$dst, (ADDiNode AccumulatorRegisterClass:$src, (i16 imm:$constant)))]
