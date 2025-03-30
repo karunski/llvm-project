@@ -38,7 +38,9 @@ def LDAsr  : WDCLoadInstructionStackRelative<0xA3, "LDA">;
 def STAsr  : WDCStoreInstructionStackRelative<0x83, "STA">;
 def RTL    : WDCReturnInstruction<0x6b, "RTL">;
 def TSC    : WDCTransferInstruction<0x3B, "TSC">;
+def TDC    : WDCTransferInstruction<0x7D, "TDC">;
 def TCS    : WDCTransferInstruction<0x1B, "TCS">;
+def TCD    : WDCTransferInstruction<0x5D, "TCD">;
 
 def CLC    : WDCStatusControlInstruction<0x18, "CLC", CarryRegisterClass, []>;
 def SEC    : WDCStatusControlInstruction<0x38, "SEC", CarryRegisterClass, []>;
@@ -76,6 +78,9 @@ class ADDImmediatePseudo
 def ADDi : ADDImmediatePseudo;
 
 def SBCi   : WDCAddSubCarryInstructionImmediate<0xE9, subc, "SBC", UnsignedImm16Operand>;
+
+def PHB : WDCStackInstruction<0x0B, "PHB">;
+def PLB : WDCStackInstruction<0xAB, "PLB">;
 
 let isReturn=1, isTerminator=1, isBarrier=1, hasCtrlDep=1 in {
   def RetRTL : WDCPseudoInst<(outs), (ins), [(WDCRetNode)]>;

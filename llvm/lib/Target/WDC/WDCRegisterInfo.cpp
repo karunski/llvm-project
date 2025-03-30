@@ -104,7 +104,7 @@ bool WDCRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
   const auto frameIndex = machineInstruction.getOperand(i).getIndex();
   const auto stackSize = machineFunction.getFrameInfo().getStackSize();
-  static const auto FrameReservedOverhead = 3; /* return address is 3 bytes */
+  static const auto FrameReservedOverhead = 5; /* return address is 3 bytes, saved DP is 2 bytes */
   const auto stackPointerOffset = machineFunction.getFrameInfo().getObjectOffset(frameIndex)
     + (frameIndex < 0 ? FrameReservedOverhead : 0)  + 1 /* SP is always one below actual stack top */;
 

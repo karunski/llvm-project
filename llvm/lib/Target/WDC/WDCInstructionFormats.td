@@ -192,6 +192,11 @@ class WDCStatusControlInstruction<bits<8> opcode, string asmstr, RegisterClass d
   let DisableEncoding = "$carryout";
 }
 
+class WDCStackInstruction<bits<8> opcode, string asmstr>
+: WDCImpliedInstruction<opcode, (outs), (ins), asmstr, []>
+{
+}
+
 class WDCStoreInstructionStackRelative<bits<8> opcode, string asmstr>
 : WDCStackRelativeInstruction<
   opcode,

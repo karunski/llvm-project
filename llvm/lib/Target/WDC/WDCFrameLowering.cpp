@@ -129,8 +129,15 @@ void WDCFrameLowering::emitPrologue(MachineFunction &machineFunction,
   // MachineModuleInfo &MMI = machineFunction.getMMI();
   // const MCRegisterInfo *MRI = MMI.getContext().getRegisterInfo();
 
+  // Save Direct Page Pointer
+  BuildMI(basicBlock, basicBlockIter, debugLoc, instructionInfo.get(WDC::PHB));
+
   // Adjust stack.
   instructionInfo.adjustStackPtr(WDC::S, -StackSize, basicBlock, basicBlockIter);
+
+  // Make the direct page point at the same location as the stack pointer. 
+  // (C holds the stack pointer after stack adjustment)
+  BuildMI(basicBlock, basicBlockIter, debugLoc, instructionInfo.get(WDC::TCD));
 
   // emit ".cfi_def_cfa_offset StackSize"
   // unsigned CFIIndex = 
@@ -182,13 +189,16 @@ void WDCFrameLowering::emitEpilogue(MachineFunction &machineFunc,
   // unsigned SP = Cpu0::SP;
 
   // Get the number of bytes from FrameInfo
-  const auto stackSize = machineFrameInfo.getStackSize();
 
-  if (!stackSize)
-    return;
+  if (const auto stackSize = machineFrameInfo.getStackSize(); stackSize)
+  {
+    // Adjust stack.
+    targetInstrInfo.adjustStackPtr(WDC::S, stackSize, machineBasicBlock, basicBlockIter);
+  }
 
-  // Adjust stack.
-  targetInstrInfo.adjustStackPtr(WDC::S, stackSize, machineBasicBlock, basicBlockIter);
+  // restore direct page
+  const auto debugLoc = basicBlockIter != machineBasicBlock.end() ? basicBlockIter->getDebugLoc() : DebugLoc{};
+  BuildMI(machineBasicBlock, basicBlockIter, debugLoc, targetInstrInfo.get(WDC::PLB));
 }
 
 void WDCFrameLowering::determineCalleeSaves(MachineFunction &MF,
