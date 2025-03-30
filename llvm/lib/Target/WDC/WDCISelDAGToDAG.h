@@ -38,11 +38,6 @@ public:
   explicit WDCDAGToDAGISel(WDCTargetMachine &TM, CodeGenOptLevel OL)
       : SelectionDAGISel(TM, OL), Subtarget(nullptr) {}
 
-  // Pass Name
-//   StringRef getPassName() const override {
-//     return "WDC DAG->DAG Pattern Instruction Selection";
-//   }
-
   bool runOnMachineFunction(MachineFunction &MF) override;
 
 protected:
@@ -82,6 +77,9 @@ class WDCDAGToDAGISelLegacy : public SelectionDAGISelLegacy {
 public:
   static char ID;
   WDCDAGToDAGISelLegacy (std::unique_ptr<SelectionDAGISel> S);
+
+  // Pass Name
+  StringRef getPassName() const override;
 };
 }
 

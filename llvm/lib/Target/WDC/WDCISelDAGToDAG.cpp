@@ -121,3 +121,7 @@ llvm::WDCDAGToDAGISelLegacy::WDCDAGToDAGISelLegacy(std::unique_ptr<SelectionDAGI
 }
 
 char llvm::WDCDAGToDAGISelLegacy::ID = 0;
+
+StringRef llvm::WDCDAGToDAGISelLegacy::getPassName() const {
+  return "WDC DAG->DAG Pattern Instruction Selection";
+}
