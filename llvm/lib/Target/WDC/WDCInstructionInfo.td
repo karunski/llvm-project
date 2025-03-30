@@ -51,9 +51,6 @@ def SEC    : WDCStatusControlInstruction<0x38, "SEC", CarryRegisterClass, []>;
 def ADCi   : WDCAddSubCarryInstructionImmediate<0x69, adde, "ADC", UnsignedImm16Operand>;
 def ADCsr  : WDCAddSubCarryInstructionStackRelative<0x63, addc, "ADC">;
 
-let WantsRoot = true in
-def frameIndexPattern : ComplexPattern<i16, 1, "SelectFrameIndex", [frameindex]>;
-
 class ADDStackRelativePseudo
 : WDCPseudoInst<
   (outs AccumulatorRegisterClass:$dst),

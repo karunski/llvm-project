@@ -89,7 +89,7 @@ def SignedImm8Operand : Operand<i8> {
   let DecoderMethod="DecodeSimm8";
 }
 
-def stack_offset : Operand<i16> {
+def StackOffsetOperand : Operand<iPTR> {
   let PrintMethod = "printStackOffset";
 }
 
@@ -100,6 +100,9 @@ def SignedImm8Pattern : PatLeaf<(imm), [{ return isInt<8>(N->getSExtValue()); }]
 
 let WantsRoot = true in
 def addr : ComplexPattern<iPTR, 2, "SelectAddr", [frameindex]>;
+
+let WantsRoot = true in
+def frameIndexPattern : ComplexPattern<i16, 1, "SelectFrameIndex", [frameindex]>;
 
 class WDCLogicInstructionImmediate<
     bits<8>   op,
@@ -139,13 +142,15 @@ class WDCAddSubCarryInstructionStackRelative<bits<8> op, SDNode opNode, string a
 : WDCStackRelativeInstruction<
     op,
     (outs AccumulatorRegisterClass:$dst),
-    (ins AccumulatorRegisterClass:$accumulator, stack_offset:$spoffset),
+    (ins AccumulatorRegisterClass:$accumulator, StackOffsetOperand:$spoffset),
     !strconcat(asmstr, "\t$spoffset"),
-    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, (i16 imm:$spoffset)))]
+    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, (frameIndexPattern:$spoffset)))]
   >
 {
+  bits<8> spoffset;
   let DisableEncoding = "$dst,$accumulator";
   let mayLoad = 1;
+  let Inst{7-0} = spoffset;
 }
 
 class WDCLoadInstructionImmediate<

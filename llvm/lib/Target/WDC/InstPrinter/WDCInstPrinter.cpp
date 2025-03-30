@@ -95,7 +95,7 @@ printMemOperand(const MCInst *MI, int opNum, raw_ostream &O) {
 
 void llvm::WDCInstPrinter::printStackOffset(const MCInst *MI, int opNum,
                                             raw_ostream &os) {
-  os << MI->getOperand(opNum).getImm() << ", S";
+  os << MI->getOperand(opNum).getImm() << ",S";
 }
 
 //#if CH >= CH7_1
