@@ -177,7 +177,7 @@ WDCTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
         report_fatal_error("Can't return value from vararg function in memory");
       }
 
-      const auto offset = VA.getLocMemOffset();
+      const auto offset = VA.getLocMemOffset() + 3 /* for return address */;
       const auto objSize = VA.getLocVT().getStoreSize();
       // Create the frame index object for the memory location.
       const auto frameIndex = frameInfo.CreateFixedObject(objSize, offset, false);
