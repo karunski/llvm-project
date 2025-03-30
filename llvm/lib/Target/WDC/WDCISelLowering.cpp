@@ -58,7 +58,6 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::ADDi:              return "WDCISD::ADDi";
   case WDCISD::ADDsr:             return "WDCISD::ADDsr";
   case WDCISD::SUBsr:             return "WDCISD::SUBsr";
-  case WDCISD::SHL:              return "WDCISD::SHL";
   default:                         return NULL;
   }
 }
@@ -79,7 +78,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
 
   setOperationAction(ISD::ADD, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SUB, MVT::i16, LegalizeAction::Custom);
-  // setOperationAction(ISD::SHL, MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::SHL, MVT::i16, LegalizeAction::Custom);
 }
 
 std::unique_ptr<const WDCTargetLowering> WDCTargetLowering::create(const WDCTargetMachine &TM,
@@ -269,11 +268,19 @@ SDValue llvm::WDCTargetLowering::LowerSub(SDValue node, SelectionDAG & DAG) cons
   return TargetLowering::LowerOperation(node, DAG);
 }
 
-SDValue llvm::WDCTargetLowering::LowerShl(SDValue node, SelectionDAG & DAG) const {
-  const SDLoc debugLoc{node};
-  const auto shiftAmount = node.getOperand(1);
-  if (const auto shiftAmtNode = dyn_cast<ConstantSDNode>(shiftAmount.getNode()); shiftAmtNode) {
-    return DAG.getNode(WDCISD::SHL, debugLoc, {node.getValueType()}, {node.getOperand(0), shiftAmount});
+SDValue llvm::WDCTargetLowering::LowerShl(SDValue node, SelectionDAG & DAG) const {  
+  if (const auto shiftAmtNode = dyn_cast<ConstantSDNode>(node.getOperand(1).getNode()); shiftAmtNode) {
+    const auto debugLoc = SDLoc{node};
+    
+    SDValue machineASLNode{DAG.getMachineNode(WDC::ASL, debugLoc, {node.getValueType()}, {node.getOperand(0)}), 0};//DAG.getNode(WDCISD::ASL, debugLoc, {node.getValueType()}, {node.getOperand(0)});
+
+    if (shiftAmtNode->isOne()) {
+      return machineASLNode;
+    }
+    else {
+      return DAG.getNode(ISD::SHL, debugLoc, {node.getValueType()},
+                  {machineASLNode, DAG.getConstant(shiftAmtNode->getAsZExtVal() - 1, debugLoc, MVT::i16)});
+    }
   }
   return TargetLowering::LowerOperation(node, DAG);
 }
