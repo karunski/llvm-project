@@ -15,10 +15,7 @@
 #define LLVM_LIB_TARGET_WDC_WDCSUBTARGET_H
 
 #include "WDCConfig.h"
-
 #include "WDCFrameLowering.h"
-#include "WDCISelLowering.h"
-#include "WDCInstructionInfo.h"
 #include "llvm/CodeGen/SelectionDAGTargetInfo.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/IR/DataLayout.h"
@@ -32,7 +29,12 @@
 namespace llvm {
 class StringRef;
 
+class WDCABIInfo;
 class WDCTargetMachine;
+class WDCTargetLowering;
+class WDCInstrInfo;
+class WDCFrameLowering;
+class WDCRegisterInfo;
 
 class WDCSubtarget : public WDCGenSubtargetInfo {
   virtual void anchor();
@@ -149,6 +151,7 @@ public:
   /// of the specified triple.
   WDCSubtarget(const Triple &TT, StringRef CPU, StringRef FS,
                const WDCTargetMachine &_TM);
+  ~WDCSubtarget();
 
   //- Vitual function, must have
   /// ParseSubtargetFeatures - Parses features string setting specified
@@ -175,19 +178,11 @@ public:
   const SelectionDAGTargetInfo *getSelectionDAGInfo() const override {
     return &TSInfo;
   }
-  const WDCInstrInfo *getInstrInfo() const override { return InstrInfo.get(); }
-  const TargetFrameLowering *getFrameLowering() const override {
-    return FrameLowering.get();
-  }
-  const WDCRegisterInfo *getRegisterInfo() const override {
-    return &InstrInfo->getRegisterInfo();
-  }
-  const WDCTargetLowering *getTargetLowering() const override {
-    return TLInfo.get();
-  }
-  const InstrItineraryData *getInstrItineraryData() const override {
-    return &InstrItins;
-  }
+  const TargetInstrInfo *getInstrInfo() const override;
+  const TargetFrameLowering *getFrameLowering() const override;
+  const TargetRegisterInfo *getRegisterInfo() const override;
+  const TargetLowering *getTargetLowering() const override;
+  const InstrItineraryData *getInstrItineraryData() const override;
 };
 } // End llvm namespace
 

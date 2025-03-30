@@ -74,11 +74,11 @@ namespace llvm {
 
   //@class WDCTargetLowering
   class WDCTargetLowering : public TargetLowering  {
-  public:
+  private:
     explicit WDCTargetLowering(const WDCTargetMachine &TM,
                                 const WDCSubtarget &STI);
-
-    static const WDCTargetLowering *create(const WDCTargetMachine &TM,
+  public:
+    static std::unique_ptr<const WDCTargetLowering> create(const WDCTargetMachine &TM,
                                             const WDCSubtarget &STI);
 
     /// getTargetNodeName - This method returns the name of a target specific
@@ -96,7 +96,6 @@ namespace llvm {
       ByValArgInfo() : FirstIdx(0), NumRegs(0), Address(0) {}
     };
 
-  protected:
     // Subtarget Info
     const WDCSubtarget &Subtarget;
     // Cache the ABI from the TargetMachine, we use it everywhere.

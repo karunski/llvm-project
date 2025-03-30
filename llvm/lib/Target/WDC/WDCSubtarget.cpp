@@ -16,8 +16,10 @@
 #include "WDCMachineFunction.h"
 #include "WDC.h"
 #include "WDCRegisterInfo.h"
-
+#include "WDCInstructionInfo.h"
 #include "WDCTargetMachine.h"
+#include "WDCFrameLowering.h"
+#include "WDCISelLowering.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/Function.h"
 #include "llvm/Support/CommandLine.h"
@@ -50,6 +52,8 @@ WDCSubtarget::WDCSubtarget(const Triple &TT, StringRef CPU,
       TLInfo(WDCTargetLowering::create(TM, *this)) {
 
 }
+
+llvm::WDCSubtarget::~WDCSubtarget() = default;
 
 bool WDCSubtarget::isPositionIndependent() const {
   return TM.isPositionIndependent();
@@ -100,3 +104,23 @@ bool WDCSubtarget::abiUsesSoftFloat() const {
 }
 
 const WDCABIInfo &WDCSubtarget::getABI() const { return TM.getABI(); }
+
+const TargetInstrInfo *WDCSubtarget::getInstrInfo() const {
+  return InstrInfo.get();
+}
+
+const TargetFrameLowering *WDCSubtarget::getFrameLowering() const {
+  return FrameLowering.get();
+}
+
+const TargetRegisterInfo *WDCSubtarget::getRegisterInfo() const {
+  return &InstrInfo->getRegisterInfo();
+}
+
+const TargetLowering *WDCSubtarget::getTargetLowering() const {
+  return TLInfo.get();
+}
+
+const InstrItineraryData *WDCSubtarget::getInstrItineraryData() const {
+  return &InstrItins;
+}

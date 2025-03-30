@@ -31,7 +31,6 @@ add_llvm_target(WDCCodeGen
   WDCISelDAGToDAG.cpp
   WDCSEISelDAGToDAG.cpp
   WDCMCInstLower.cpp
-  WDCSEISelLowering.cpp
   WDCMCAsmInfo.cpp
   WDCAsmPrinter.cpp
   WDCMachineFunction.cpp

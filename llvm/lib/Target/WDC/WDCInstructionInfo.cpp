@@ -29,7 +29,7 @@ using namespace llvm;
 void WDCInstrInfo::anchor() {}
 
 //@WDCInstrInfo {
-WDCInstrInfo::WDCInstrInfo(const WDCSubtarget &STI) : RI{STI}, Subtarget{STI} {}
+WDCInstrInfo::WDCInstrInfo(const WDCSubtarget &STI) : RI{STI}{}
 
 std::unique_ptr<const WDCInstrInfo> WDCInstrInfo::create(WDCSubtarget &STI) {
   return std::unique_ptr<const WDCInstrInfo>{new WDCInstrInfo{STI}};

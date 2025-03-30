@@ -19,6 +19,7 @@
 #include "WDC.h"
 #include "WDCSubtarget.h"
 #include "WDCTargetMachine.h"
+#include "WDCISelLowering.h"
 #include "llvm/CodeGen/SelectionDAGISel.h"
 #include "llvm/IR/Type.h"
 #include "llvm/Support/Debug.h"

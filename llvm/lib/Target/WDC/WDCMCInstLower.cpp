@@ -27,22 +27,22 @@
 
 using namespace llvm;
 
-WDCMCInstLower::WDCMCInstLower(WDCAsmPrinter &asmprinter)
-  : AsmPrinter(asmprinter) {}
+WDCMCInstLower::WDCMCInstLower(WDCAsmPrinter &/*asmprinter*/)
+  /*: AsmPrinter(asmprinter) */{}
 
 void WDCMCInstLower::Initialize(MCContext* C) {
   Ctx = C;
 }
 
-static void CreateMCInst(MCInst& Inst, unsigned Opc, const MCOperand& Opnd0,
-                         const MCOperand& Opnd1,
-                         const MCOperand& Opnd2 = MCOperand()) {
-  Inst.setOpcode(Opc);
-  Inst.addOperand(Opnd0);
-  Inst.addOperand(Opnd1);
-  if (Opnd2.isValid())
-    Inst.addOperand(Opnd2);
-}
+// static void CreateMCInst(MCInst& Inst, unsigned Opc, const MCOperand& Opnd0,
+//                          const MCOperand& Opnd1,
+//                          const MCOperand& Opnd2 = MCOperand()) {
+//   Inst.setOpcode(Opc);
+//   Inst.addOperand(Opnd0);
+//   Inst.addOperand(Opnd1);
+//   if (Opnd2.isValid())
+//     Inst.addOperand(Opnd2);
+// }
 
 //@LowerOperand {
 MCOperand WDCMCInstLower::LowerOperand(const MachineOperand& MO,

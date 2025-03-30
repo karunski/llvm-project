@@ -49,7 +49,7 @@ private:
     /// VarArgsFrameIndex - FrameIndex for start of varargs area.
   int VarArgsFrameIndex = 0;
 
-  unsigned MaxCallFrameSize = 0;
+  // unsigned MaxCallFrameSize = 0;
 
   /// SRetReturnReg - Some subtargets require that sret lowering includes
   /// returning the value of the returned struct in a register. This field

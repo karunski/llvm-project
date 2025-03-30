@@ -30,7 +30,7 @@ class LLVM_LIBRARY_VISIBILITY WDCMCInstLower {
 //@2
   typedef MachineOperand::MachineOperandType MachineOperandType;
   MCContext *Ctx;
-  WDCAsmPrinter &AsmPrinter;
+  // WDCAsmPrinter &AsmPrinter;
 public:
   WDCMCInstLower(WDCAsmPrinter &asmprinter);
   void Initialize(MCContext* C);

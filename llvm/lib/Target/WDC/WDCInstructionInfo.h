@@ -30,7 +30,7 @@ class WDCInstrInfo : public WDCGenInstrInfo {
   const WDCRegisterInfo RI;
 
   virtual void anchor();
-  const WDCSubtarget &Subtarget;
+  // const WDCSubtarget &Subtarget;
   explicit WDCInstrInfo(const WDCSubtarget &STI);
 
 public:

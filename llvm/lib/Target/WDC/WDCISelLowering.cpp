@@ -17,6 +17,7 @@
 #include "WDCTargetMachine.h"
 #include "WDCTargetObjectFile.h"
 #include "WDCSubtarget.h"
+#include "WDCRegisterInfo.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/CodeGen/CallingConvLower.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
@@ -36,6 +37,10 @@
 using namespace llvm;
 
 #define DEBUG_TYPE "WDC-lower"
+
+static cl::opt<bool>
+EnableWDCTailCalls("enable-wdc-tail-calls", cl::Hidden,
+                    cl::desc("WDC: Enable tail calls."), cl::init(false));
 
 //@3_1 1 {
 const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
@@ -58,11 +63,21 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
 //@WDCTargetLowering {
 WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
                                      const WDCSubtarget &STI)
-    : TargetLowering{TM}, Subtarget{STI}, ABI{TM.getABI()} {}
+    : TargetLowering{TM}, Subtarget{STI}, ABI{TM.getABI()} {
+  //@WDCSETargetLowering body {
+  // Set up the register classes
+  addRegisterClass(MVT::i16, &WDC::AccumulatorRegisterClassRegClass);
+  addRegisterClass(MVT::i16, &WDC::IndexRegsRegClass);
+  // addRegisterClass(MVT::i16, &WDC::CPURegsRegClass);
 
-const WDCTargetLowering *WDCTargetLowering::create(const WDCTargetMachine &TM,
+  // must, computeRegisterProperties - Once all of the register classes are
+  //  added, this allows us to compute derived properties we expose.
+  computeRegisterProperties(Subtarget.getRegisterInfo());
+}
+
+std::unique_ptr<const WDCTargetLowering> WDCTargetLowering::create(const WDCTargetMachine &TM,
                                                      const WDCSubtarget &STI) {
-  return llvm::createWDCSETargetLowering(TM, STI);
+  return std::unique_ptr<const WDCTargetLowering>{new WDCTargetLowering{TM, STI}};
 }
 
 //===----------------------------------------------------------------------===//
