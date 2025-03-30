@@ -27,23 +27,27 @@
 namespace llvm {
 
 class WDCInstrInfo : public WDCGenInstrInfo {
+  const WDCRegisterInfo RI;
+
   virtual void anchor();
-protected:
   const WDCSubtarget &Subtarget;
-public:
   explicit WDCInstrInfo(const WDCSubtarget &STI);
 
-  static const WDCInstrInfo *create(WDCSubtarget &STI);
+public:
+  static std::unique_ptr<const WDCInstrInfo> create(WDCSubtarget &STI);
 
   /// getRegisterInfo - TargetInstrInfo is a superset of MRegister info.  As
   /// such, whenever a client has an instance of instruction info, it should
   /// always be able to get register info as well (through this method).
   ///
-  virtual const WDCRegisterInfo &getRegisterInfo() const = 0;
+  const WDCRegisterInfo &getRegisterInfo() const;
 
-  virtual void adjustStackPtr(unsigned SP, int64_t Amount,
+  bool expandPostRAPseudo(MachineInstr &MI) const override;
+
+  /// Adjust SP by Amount bytes.
+  void adjustStackPtr(unsigned SP, int64_t Amount,
                               MachineBasicBlock &MBB,
-                              MachineBasicBlock::iterator I) const = 0;
+                              MachineBasicBlock::iterator I) const;
 
   /// Return the number of bytes of code the specified instruction may be.
   unsigned GetInstSizeInBytes(const MachineInstr &MI) const;
@@ -60,25 +64,26 @@ public:
     const TargetRegisterInfo *TRI, Register VReg,
     MachineInstr::MIFlag Flags = MachineInstr::NoFlags) const override;
 
-  virtual void storeRegToStack(MachineBasicBlock &MBB,
+private:
+  void storeRegToStack(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator MI, Register SrcReg,
                                bool isKill, int FrameIndex,
                                const TargetRegisterClass *RC,
                                const TargetRegisterInfo *TRI,
-                               int64_t Offset) const = 0;
+                               int64_t Offset) const;
 
-  virtual void loadRegFromStack(MachineBasicBlock &MBB,
+  void loadRegFromStack(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator MI,
                                 Register DestReg, int FrameIndex,
                                 const TargetRegisterClass *RC,
                                 const TargetRegisterInfo *TRI,
-                                int64_t Offset) const = 0;
+                                int64_t Offset) const;
 
-protected:
   MachineMemOperand *GetMemOperand(MachineBasicBlock &MBB, int FI,
                                    MachineMemOperand::Flags Flags) const;
+
+  void expandRTL(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
 };
-const WDCInstrInfo *createWDCSEInstrInfo(const WDCSubtarget &STI);
 }
 
 #endif

@@ -29,10 +29,10 @@ using namespace llvm;
 void WDCInstrInfo::anchor() {}
 
 //@WDCInstrInfo {
-WDCInstrInfo::WDCInstrInfo(const WDCSubtarget &STI) : Subtarget{STI} {}
+WDCInstrInfo::WDCInstrInfo(const WDCSubtarget &STI) : RI{STI}, Subtarget{STI} {}
 
-const WDCInstrInfo *WDCInstrInfo::create(WDCSubtarget &STI) {
-  return llvm::createWDCSEInstrInfo(STI);
+std::unique_ptr<const WDCInstrInfo> WDCInstrInfo::create(WDCSubtarget &STI) {
+  return std::unique_ptr<const WDCInstrInfo>{new WDCInstrInfo{STI}};
 }
 
 //@GetInstSizeInBytes {
@@ -72,4 +72,89 @@ llvm::WDCInstrInfo::GetMemOperand(MachineBasicBlock &basicBlock,
       MachinePointerInfo::getFixedStack(machineFunction, frameIndex), Flags,
       frameInfo.getObjectSize(frameIndex),
       frameInfo.getObjectAlign(frameIndex));
+}
+
+const WDCRegisterInfo &WDCInstrInfo::getRegisterInfo() const {
+  return RI;
+}
+
+bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
+MachineBasicBlock &MBB = *MI.getParent();
+
+  switch (MI.getDesc().getOpcode()) {
+  default:
+    return false;
+  case WDC::RetRTL:
+    expandRTL(MBB, MI);
+    break;
+  }
+
+  MBB.erase(MI);
+  return true;
+}
+
+void llvm::WDCInstrInfo::adjustStackPtr(unsigned SP, int64_t amount,
+                                          MachineBasicBlock &MBB,
+                                          MachineBasicBlock::iterator I) const {
+  const auto debugLoc = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
+  // unsigned ADDu = Cpu0::ADDu;
+  // unsigned ADDiu = Cpu0::ADDiu;
+
+  assert(isInt<16>(amount) && "stack adjustment amount was too great");
+  if (amount < 0) {
+    amount = -amount;
+    BuildMI(MBB, I, debugLoc, get(WDC::SEC));
+    BuildMI(MBB, I, debugLoc, get(WDC::TSC));
+    BuildMI(MBB, I, debugLoc, get(WDC::SBCi), WDC::A).addReg(WDC::A).addImm(amount);
+    BuildMI(MBB, I, debugLoc, get(WDC::TCS));
+  }
+  else
+  {
+    BuildMI(MBB, I, debugLoc, get(WDC::CLC));
+    BuildMI(MBB, I, debugLoc, get(WDC::TSC));
+    BuildMI(MBB, I, debugLoc, get(WDC::ADCi), WDC::A).addReg(WDC::A).addImm(amount);
+    BuildMI(MBB, I, debugLoc, get(WDC::TCS));
+  }
+  // else { // Expand immediate that doesn't fit in 16-bit.
+  //   unsigned Reg = loadImmediate(Amount, MBB, I, DL, nullptr);
+  //   BuildMI(MBB, I, DL, get(ADDu), SP).addReg(SP).addReg(Reg, RegState::Kill);
+  // }
+}
+
+void llvm::WDCInstrInfo::storeRegToStack(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MI, Register SrcReg,
+    bool isKill, int FrameIndex, const TargetRegisterClass *RC,
+    const TargetRegisterInfo *TRI, int64_t Offset) const {
+  MachineMemOperand *MMO = GetMemOperand(MBB, FrameIndex, MachineMemOperand::MOStore);
+
+  const auto Opc = WDC::STAsr;
+  assert(Opc && "Register class not handled!");
+
+  BuildMI(MBB, MI, DebugLoc{}, get(Opc))
+      .addReg(SrcReg, getKillRegState(isKill))
+      .addFrameIndex(FrameIndex)
+      .addImm(Offset)
+      .addMemOperand(MMO);
+}
+
+void llvm::WDCInstrInfo::loadRegFromStack(MachineBasicBlock &basicBlock,
+                                            MachineBasicBlock::iterator blockIter,
+                                            Register DestReg, int FrameIndex,
+                                            const TargetRegisterClass *RC,
+                                            const TargetRegisterInfo */*TRI*/,
+                                            int64_t Offset) const {
+  const auto debugLoc = blockIter != basicBlock.end() ? blockIter->getDebugLoc() : DebugLoc{};
+
+  const auto MMO = GetMemOperand(basicBlock, FrameIndex, MachineMemOperand::MOLoad);
+  const auto Opc = WDC::LDAsr;
+  assert(Opc && "Register class not handled!");
+  BuildMI(basicBlock, blockIter, debugLoc, get(Opc), DestReg)
+      .addFrameIndex(FrameIndex)
+      .addImm(Offset)
+      .addMemOperand(MMO);
+}
+
+void llvm::WDCInstrInfo::expandRTL(MachineBasicBlock &MBB,
+                                     MachineBasicBlock::iterator I) const {
+  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::RTL));
 }

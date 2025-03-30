@@ -16,7 +16,7 @@
 #include "WDCInstructionInfo.h"
 #include "WDCMachineFunction.h"
 #include "WDCSubtarget.h"
-#include "WDCSEInstructionInfo.h"
+#include "WDCInstructionInfo.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
@@ -111,7 +111,7 @@ void WDCFrameLowering::emitPrologue(MachineFunction &machineFunction,
   // const auto * wdcFunctionInfo = machineFunction.getInfo<WDCFunctionInfo>();
 
   const auto &instructionInfo =
-      *static_cast<const WDCSEInstrInfo *>(Subtarget.getInstrInfo());
+      *static_cast<const WDCInstrInfo *>(Subtarget.getInstrInfo());
   // const auto &RegInfo =
   //     *static_cast<const WDCRegisterInfo *>(Subtarget.getRegisterInfo());
 
@@ -173,7 +173,7 @@ void WDCFrameLowering::emitEpilogue(MachineFunction &machineFunc,
   // auto * wdcFunctionInfo = machineFunc.getInfo<WDCFunctionInfo>();
 
   const auto &targetInstrInfo =
-      *static_cast<const WDCSEInstrInfo *>(Subtarget.getInstrInfo());
+      *static_cast<const WDCInstrInfo *>(Subtarget.getInstrInfo());
   // const Cpu0RegisterInfo &RegInfo =
   //     *static_cast<const Cpu0RegisterInfo *>(STI.getRegisterInfo());
 
