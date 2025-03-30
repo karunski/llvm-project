@@ -71,8 +71,8 @@ getReservedRegs(const MachineFunction &MF) const {
 // pure virtual method
 
 //  For 5 local i16 vars + 1 return i16:
-//  SP+9+3 FrameIndex -1 ObjectOffset 0   |
-//  SP+    return addr (3 bytes)
+//  SP+11+3 FrameIndex -1 ObjectOffset 0  |
+//  SP+11    return addr (3 bytes)
 //  SP+9   FrameIndex 0  ObjectOffset  -2 |
 //  SP+7   FrameIndex 1  ObjectOffset  -4 |- local vars 2 * 5 = 10 bytes
 //  SP+5   FrameIndex 2  ObjectOffset  -6 |
@@ -127,7 +127,6 @@ bool WDCRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   //  3. Locations for callee-saved registers.
   // Everything else is referenced relative to whatever register
   // getFrameRegister() returns.
-  const auto frameRegister = WDC::S;
 
   // Calculate final offset.
   // - There is no need to change the offset if the frame object is one of the
@@ -137,33 +136,16 @@ bool WDCRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   // adjusted
   //   by adding the size of the stack:
   //   incoming argument, callee-saved register location or local variable.
-  if (i + 1 < machineInstruction.getNumOperands())
-  {
-    // this instruction has an offset operand after the frameIndex operand.
-    const auto Offset = stackPointerOffset + stackSize + machineInstruction.getOperand(i + 1).getImm();
-    LLVM_DEBUG(errs() << "Offset     : " << Offset << "\n" );
-    machineInstruction.getOperand(i).ChangeToRegister(frameRegister, false);
-    machineInstruction.getOperand(i + 1).ChangeToImmediate(Offset);
 
-    // If MI is not a debug value, make sure Offset fits in the 16-bit immediate
-    // field.
-    if (!machineInstruction.isDebugValue() && !isInt<8>(Offset)) {
-      errs() << "stack offset dosn't fit in 8 bits";
-      assert(0 && "(!MI.isDebugValue() && !isInt<8>(Offset))");
-    }
-  }
-  else
-  {
-    // this is the scheme I cooked up when inventing ADDsr.  Just one operand, the frame index, 
-    // is turned into the Offset.  The stack register is implied.
-    const auto offset = stackPointerOffset + stackSize;
-    LLVM_DEBUG(errs() << "Offset " << offset << " = stackPointerOffset " << stackPointerOffset << " + stackSize " << stackSize << "\n");
-    machineInstruction.getOperand(i).ChangeToImmediate(offset);
+  // this is the scheme I cooked up when inventing ADDsr.  Just one operand, the frame index, 
+  // is turned into the Offset.  The stack register is implied.
+  const auto offset = stackPointerOffset + stackSize;
+  LLVM_DEBUG(errs() << "Offset " << offset << " = stackPointerOffset " << stackPointerOffset << " + stackSize " << stackSize << "\n");
+  machineInstruction.getOperand(i).ChangeToImmediate(offset);
 
-    if (!machineInstruction.isDebugValue() && !isInt<8>(offset)) {
-      errs() << "stack offset dosn't fit in 8 bits";
-      assert(0 && "(!MI.isDebugValue() && !isInt<8>(Offset))");
-    }
+  if (!machineInstruction.isDebugValue() && !isInt<8>(offset)) {
+    errs() << "stack offset dosn't fit in 8 bits";
+    assert(0 && "(!MI.isDebugValue() && !isInt<8>(Offset))");
   }
   LLVM_DEBUG(errs() << "<--------->\n");
 

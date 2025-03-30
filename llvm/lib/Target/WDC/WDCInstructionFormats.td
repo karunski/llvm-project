@@ -73,9 +73,11 @@ class WDCStackRelativeInstruction<bits<8> opcode, dag outs, dag ins, string asms
 : WDCInst<outs, ins, asmstr, pattern>
 {
   field bits<16> Inst;
+  bits<8> spoffset;
   let Size = 2;
   let Opcode = opcode;
   let Inst{15-8} = opcode; 
+  let Inst{7-0} = spoffset;
 }
 
 def SignedImm16Operand      : Operand<i16> {
@@ -97,9 +99,6 @@ def StackOffsetOperand : Operand<iPTR> {
 def SignedImm16Pattern  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
 def UnsignedImm16Pattern : PatLeaf<(imm), [{ return isUInt<16>(N->getZExtValue()); }]>;
 def SignedImm8Pattern : PatLeaf<(imm), [{ return isInt<8>(N->getSExtValue()); }]>;
-
-let WantsRoot = true in
-def addr : ComplexPattern<iPTR, 2, "SelectAddr", [frameindex]>;
 
 let WantsRoot = true in
 def frameIndexPattern : ComplexPattern<i16, 1, "SelectFrameIndex", [frameindex]>;
@@ -147,10 +146,8 @@ class WDCAddSubCarryInstructionStackRelative<bits<8> op, SDNode opNode, string a
     [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, (frameIndexPattern:$spoffset)))]
   >
 {
-  bits<8> spoffset;
   let DisableEncoding = "$dst,$accumulator";
   let mayLoad = 1;
-  let Inst{7-0} = spoffset;
 }
 
 class WDCLoadInstructionImmediate<
@@ -195,13 +192,13 @@ class WDCStatusControlInstruction<bits<8> opcode, string asmstr, RegisterClass d
   let DisableEncoding = "$carryout";
 }
 
-class WDCStoreInstructionStackRelative<bits<8> opcode, string asmstr, Operand operand>
+class WDCStoreInstructionStackRelative<bits<8> opcode, string asmstr>
 : WDCStackRelativeInstruction<
   opcode,
   (outs),
-  (ins AccumulatorRegisterClass:$accumulator, operand:$addr),
-  !strconcat(asmstr, "\t$addr"),
-  [(store AccumulatorRegisterClass:$accumulator, addr:$addr)]>
+  (ins AccumulatorRegisterClass:$accumulator, StackOffsetOperand:$spoffset),
+  !strconcat(asmstr, "\t$spoffset"),
+  [(store AccumulatorRegisterClass:$accumulator, frameIndexPattern:$spoffset)]>
 {
   let DisableEncoding = "$accumulator";
   let mayStore = 1;
@@ -209,14 +206,13 @@ class WDCStoreInstructionStackRelative<bits<8> opcode, string asmstr, Operand op
 
 class WDCLoadInstructionStackRelative<
   bits<8> opcode,
-  string asmstr,
-  Operand operand>
+  string asmstr>
 : WDCStackRelativeInstruction<
     opcode,
     (outs AccumulatorRegisterClass:$dst),
-    (ins operand:$addr),
-    !strconcat(asmstr, "\t$addr"),
-    [(set AccumulatorRegisterClass:$dst, (load addr:$addr))]>
+    (ins StackOffsetOperand:$spoffset),
+    !strconcat(asmstr, "\t$spoffset"),
+    [(set AccumulatorRegisterClass:$dst, (load frameIndexPattern:$spoffset))]>
 {
   let DisableEncoding = "$dst";
   let canFoldAsLoad = 1;
