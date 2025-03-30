@@ -85,6 +85,7 @@ def SignedImm16Operand      : Operand<i16> {
 }
 def UnsignedImm16Operand : Operand<i16> {
   let DecoderMethod="DecodeUimm16";
+  let PrintMethod = "printUnsignedImm";
 }
 
 def SignedImm8Operand : Operand<i8> {

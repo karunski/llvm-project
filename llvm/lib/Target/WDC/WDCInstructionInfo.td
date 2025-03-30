@@ -19,7 +19,7 @@ include "WDCSDNodes.td"
 include "WDCPseudoInstructions.td"
 
 def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
-def LDAi   : WDCLoadInstructionImmediate<0xA9, "LDA", SignedImm16Operand>;
+def LDAi   : WDCLoadInstructionImmediate<0xA9, "LDA", UnsignedImm16Operand>;
 def LDAsr  : WDCLoadInstructionStackRelative<0xA3, "LDA">;
 def STAsr  : WDCStoreInstructionStackRelative<0x83, "STA">;
 def RTL    : WDCReturnInstruction<0x6b, "RTL">;
