@@ -29,6 +29,10 @@ public:
   explicit WDCSEInstrInfo(const WDCSubtarget &STI);
 
   const WDCRegisterInfo &getRegisterInfo() const override;
+  bool expandPostRAPseudo(MachineInstr &MI) const override;
+
+private:
+  void expandRTL(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
 };
 }
 

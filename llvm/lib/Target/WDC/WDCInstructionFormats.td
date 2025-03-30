@@ -21,14 +21,16 @@ class AddressMode<bits<4> val> {
   bits<4> Value = val;
 }
 
-def WDCImmediate : AddressMode<0>;
+def WDCAddressModePseudo : AddressMode<0>;
+def WDCAddressModeImmediate : AddressMode<1>;
+def WDCAddressModeImplied : AddressMode<2>;
 
 // Generic Cpu0 Format
-class WDCInst<dag outs, dag ins, string asmstr, list<dag> pattern, AddressMode addrMode> : Instruction
+class WDCInst<dag outs, dag ins, string asmstr, list<dag> pattern> : Instruction
 {
   // Inst and Size: for tablegen(... -gen-emitter) and 
   // tablegen(... -gen-disassembler) in CMakeLists.txt
-  AddressMode m_addrMode = addrMode;
+  AddressMode m_addrMode;
   let Namespace = "WDC";
 
   let Size = 0;
@@ -46,22 +48,30 @@ class WDCInst<dag outs, dag ins, string asmstr, list<dag> pattern, AddressMode a
   let hasNoSchedulingInfo = true;
 }
 
-class WDCLogicInstruction<
-    bits<8>       op,
-    dag           outs, 
-    dag           ins, 
-    string        asmstr, 
-    list<dag>     pattern, 
-    AddressMode   addrMode>
-: WDCInst<outs, ins, asmstr, pattern, addrMode>
+class WDCImmediateInstruction<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
+: WDCInst<outs, ins, asmstr, pattern>
 {
-  let Opcode = op;
+  field bits<24> Inst;
+  let Size = 3;
+  let Opcode = opcode;
+  let Inst{23-16} = opcode;
+  let m_addrMode = WDCAddressModeImplied;
 }
 
-// Signed 16 bit immediate
+class WDCImpliedInstruction<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
+: WDCInst<outs, ins, asmstr, pattern>
+{
+  field bits<8> Inst;
+  let Size = 3;
+  let Opcode = opcode;
+  let Inst = opcode;
+  let m_addrMode = WDCAddressModeImmediate;
+}
+
 def SignedImm16Operand      : Operand<i16> {
   let DecoderMethod= "DecodeSimm16";
 }
+
 // Pattern 
 def SignedImm16Pattern  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
 
@@ -71,18 +81,42 @@ class WDCLogicInstructionImmmediate<
     string    asmstr,
     Operand   oprnd
 >
-: WDCLogicInstruction<
+: WDCImmediateInstruction<
     op,
     (outs AccumulatorRegisterClass:$dst),
     (ins AccumulatorRegisterClass:$accumulator, oprnd:$constant),
     !strconcat(asmstr, "\t$constant"),
-    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, SignedImm16Pattern:$constant))],
-    WDCImmediate
+    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, SignedImm16Pattern:$constant))]
   >
 {
-  field bits<24> Inst;
-  let Size = 3;
-  let Inst{23-16} = op;
   let DisableEncoding = "$dst,$accumulator";
 }
 
+class WDCLoadInstructionImmediate<
+    bits<8> op,
+    SDNode  opnode,
+    string  asmstr,
+    Operand operand>
+: WDCImmediateInstruction<
+    op,
+    (outs AccumulatorRegisterClass:$dst),
+    (ins operand:$constant),
+    !strconcat(asmstr, "\t$constant"),
+    [(set AccumulatorRegisterClass:$dst, (opnode SignedImm16Pattern:$constant))]
+  >
+{
+  let DisableEncoding = "$dst";
+}
+
+class WDCPseudoInst<dag outs, dag ins, string asmstr, list<dag> pattern>:
+      WDCInst<outs, ins, asmstr, pattern> {
+  let isCodeGenOnly = 1;
+  let isPseudo = 1;
+  let m_addrMode = WDCAddressModePseudo;
+}
+
+class WDCReturnInstruction<bits<8> opcode, string asmstr>
+: WDCImpliedInstruction<opcode, (outs), (ins), asmstr, []>
+{
+  let isReturn = 1;
+}

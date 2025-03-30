@@ -98,13 +98,107 @@ WDCTargetLowering::LowerFormalArguments(SDValue Chain,
 //===----------------------------------------------------------------------===//
 //@              Return Value Calling Convention Implementation
 //===----------------------------------------------------------------------===//
+template <typename Ty>
+void WDCTargetLowering::WDCCallingConvention::analyzeReturn(
+    const SmallVectorImpl<Ty> &RetVals, bool IsSoftFloat,
+    const SDNode *CallNode, const Type *RetTy) const {
+  CCAssignFn *Fn = RetCC_WDC;
+
+  for (unsigned I = 0, E = RetVals.size(); I < E; ++I) {
+    MVT VT = RetVals[I].VT;
+    ISD::ArgFlagsTy Flags = RetVals[I].Flags;
+    MVT RegVT = VT;//this->getRegVT(VT, IsSoftFloat);
+
+    if (Fn(I, VT, RegVT, CCValAssign::Full, Flags, this->CCInfo)) {
+#ifndef NDEBUG
+      dbgs() << "Call result #" << I << " has unhandled type "
+             << EVT(VT).getEVTString() << '\n';
+#endif
+      llvm_unreachable(nullptr);
+    }
+  }
+}
 
 SDValue
-WDCTargetLowering::LowerReturn(SDValue Chain,
-                                CallingConv::ID CallConv, bool IsVarArg,
-                                const SmallVectorImpl<ISD::OutputArg> &Outs,
-                                const SmallVectorImpl<SDValue> &OutVals,
-                                const SDLoc &DL, SelectionDAG &DAG) const {
-  return DAG.getNode(WDCISD::Ret, DL, MVT::Other,
-                     Chain, DAG.getRegister(WDC::A, MVT::i16));
+WDCTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
+                               bool IsVarArg,
+                               const SmallVectorImpl<ISD::OutputArg> &Outs,
+                               const SmallVectorImpl<SDValue> &OutVals,
+                               const SDLoc &DL, SelectionDAG &DAG) const {
+  // CCValAssign - represent the assignment of
+  // the return value to a location
+  SmallVector<CCValAssign, 16> RVLocs;
+  MachineFunction &MF = DAG.getMachineFunction();
+
+  // CCState - Info about the registers and stack slot.
+  CCState CCInfo{CallConv, IsVarArg, MF, RVLocs, *DAG.getContext()};
+  WDCCallingConvention callingConventionInfo{CallConv, CCInfo};
+
+  // Analyze return values.
+  callingConventionInfo.analyzeReturn(Outs, Subtarget.abiUsesSoftFloat(),
+                                      MF.getFunction().getReturnType());
+
+  SDValue Flag;
+  SmallVector<SDValue, 4> RetOps{1, Chain};
+
+  // Copy the result values into the output registers.
+  for (size_t i = 0; i != RVLocs.size(); ++i) {
+    SDValue Val = OutVals[i];
+    CCValAssign &VA = RVLocs[i];
+    assert(VA.isRegLoc() && "Can only return in registers!");
+
+    if (RVLocs[i].getValVT() != RVLocs[i].getLocVT())
+      Val = DAG.getNode(ISD::BITCAST, DL, RVLocs[i].getLocVT(), Val);
+
+    Chain = DAG.getCopyToReg(Chain, DL, VA.getLocReg(), Val, Flag);
+
+    // Guarantee that all emitted copies are stuck together with flags.
+    Flag = Chain.getValue(1);
+    RetOps.push_back(DAG.getRegister(VA.getLocReg(), VA.getLocVT()));
+  }
+
+//@Ordinary struct type: 2 {
+  // The cpu0 ABIs for returning structs by value requires that we copy
+  // the sret argument into $v0 for the return. We saved the argument into
+  // a virtual register in the entry block, so now we copy the value out
+  // and into $v0.
+  // if (MF.getFunction().hasStructRetAttr()) {
+  //   Cpu0FunctionInfo *Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
+  //   unsigned Reg = Cpu0FI->getSRetReturnReg();
+
+  //   if (!Reg)
+  //     llvm_unreachable("sret virtual register not created in the entry block");
+  //   SDValue Val =
+  //       DAG.getCopyFromReg(Chain, DL, Reg, getPointerTy(DAG.getDataLayout()));
+  //   unsigned V0 = Cpu0::V0;
+
+  //   Chain = DAG.getCopyToReg(Chain, DL, V0, Val, Flag);
+  //   Flag = Chain.getValue(1);
+  //   RetOps.push_back(DAG.getRegister(V0, getPointerTy(DAG.getDataLayout())));
+  // }
+//@Ordinary struct type: 2 }
+
+  RetOps[0] = Chain;  // Update chain.
+
+  // Add the flag if we have it.
+  if (Flag.getNode()) {
+    RetOps.push_back(Flag);
+  }
+
+  // Return on Cpu0 is always a "ret $lr"
+  return DAG.getNode(WDCISD::Ret, DL, MVT::Other, RetOps);
+}
+
+llvm::WDCTargetLowering::WDCCallingConvention::WDCCallingConvention(
+    CallingConv::ID CallConv, CCState &Info,
+    SpecialCallingConvType /*SpecialCallingConv*/)
+    : CCInfo{Info}, CallConv(CallConv) {
+  // Pre-allocate reserved argument area.
+  //CCInfo.AllocateStack(reservedArgArea(), Align(1));
+}
+
+void llvm::WDCTargetLowering::WDCCallingConvention::analyzeReturn(
+    const SmallVectorImpl<ISD::OutputArg> &Outs, bool IsSoftFloat,
+    const Type *RetTy) const {
+  analyzeReturn(Outs, IsSoftFloat, nullptr, RetTy);
 }

@@ -37,7 +37,9 @@ WDCSETargetLowering::WDCSETargetLowering(const WDCTargetMachine &TM,
     : WDCTargetLowering(TM, STI) {
 //@WDCSETargetLowering body {
   // Set up the register classes
-  addRegisterClass(MVT::i32, &WDC::CPURegsRegClass);
+  addRegisterClass(MVT::i16, &WDC::AccumulatorRegisterClassRegClass);
+  addRegisterClass(MVT::i16, &WDC::IndexRegsRegClass);
+  // addRegisterClass(MVT::i16, &WDC::CPURegsRegClass);
 
 // must, computeRegisterProperties - Once all of the register classes are 
 //  added, this allows us to compute derived properties we expose.
