@@ -66,7 +66,8 @@ namespace llvm {
 
       ADDsr,
       ADDi,
-      SUBsr
+      SUBsr,
+      SHL,
     };
   }
 
@@ -174,6 +175,8 @@ namespace llvm {
     SDValue LowerAdd(SDValue node, SelectionDAG &DAG) const;
 
     SDValue LowerSub(SDValue node, SelectionDAG &DAG) const;
+
+    SDValue LowerShl(SDValue node, SelectionDAG &DAG) const;
 
     SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
 

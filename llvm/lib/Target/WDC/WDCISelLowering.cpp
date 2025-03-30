@@ -58,6 +58,7 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::ADDi:              return "WDCISD::ADDi";
   case WDCISD::ADDsr:             return "WDCISD::ADDsr";
   case WDCISD::SUBsr:             return "WDCISD::SUBsr";
+  case WDCISD::SHL:              return "WDCISD::SHL";
   default:                         return NULL;
   }
 }
@@ -78,6 +79,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
 
   setOperationAction(ISD::ADD, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SUB, MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::SHL, MVT::i16, LegalizeAction::Custom);
 }
 
 std::unique_ptr<const WDCTargetLowering> WDCTargetLowering::create(const WDCTargetMachine &TM,
@@ -267,6 +269,15 @@ SDValue llvm::WDCTargetLowering::LowerSub(SDValue node, SelectionDAG & DAG) cons
   return TargetLowering::LowerOperation(node, DAG);
 }
 
+SDValue llvm::WDCTargetLowering::LowerShl(SDValue node, SelectionDAG & DAG) const {
+  const SDLoc debugLoc{node};
+  const auto shiftAmount = node.getOperand(1);
+  if (const auto shiftAmtNode = dyn_cast<ConstantSDNode>(shiftAmount.getNode()); shiftAmtNode) {
+    return DAG.getNode(WDCISD::SHL, debugLoc, {node.getValueType()}, {node.getOperand(0), shiftAmount});
+  }
+  return TargetLowering::LowerOperation(node, DAG);
+}
+
 SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
                                                 SelectionDAG &DAG) const {
   if (const auto opcode = node.getOpcode(); opcode == ISD::ADD) {
@@ -274,6 +285,9 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
   }
   else if (opcode == ISD::SUB) {
     return LowerSub(node, DAG);
+  }
+  else if (opcode == ISD::SHL) {
+    return LowerShl(node, DAG);
   }
 
   return TargetLowering::LowerOperation(node, DAG);

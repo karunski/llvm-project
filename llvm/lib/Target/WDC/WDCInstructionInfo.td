@@ -15,21 +15,8 @@
 // Instruction format superclass
 //===----------------------------------------------------------------------===//
 include "WDCInstructionFormats.td"
-
-// Return
-def WDCRetNode : SDNode<"WDCISD::Ret", SDTNone,
-                     [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
-
-def BinaryOpNode : SDTypeProfile<1, 2, [SDTCisInt<0>, SDTCisInt<1>]>;
-
-def WDCAddStackRelativeNode : SDNode<"WDCISD::ADDsr", BinaryOpNode, [SDNPHasChain]>;
-def WDCSubStackRelativeNode : SDNode<"WDCISD::SUBsr", BinaryOpNode, [SDNPHasChain]>;
-
-def WDCAddImmediateNode : SDNode<
-  "WDCISD::ADDi",
-  SDTypeProfile<1, 2, [SDTCisInt<0>, SDTCisInt<1>]>,
-  []
->;
+include "WDCSDNodes.td"
+include "WDCPseudoInstructions.td"
 
 def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
 def LDAi   : WDCLoadInstructionImmediate<0xA9, "LDA", SignedImm16Operand>;
@@ -44,40 +31,14 @@ def TCD    : WDCTransferInstruction<0x5D, "TCD">;
 def CLC    : WDCStatusControlInstruction<0x18, "CLC", CarryRegisterClass, []>;
 def SEC    : WDCStatusControlInstruction<0x38, "SEC", CarryRegisterClass, []>;
 
-def ADCi   : WDCAddSubCarryInstructionImmediate<0x69, adde, "ADC", UnsignedImm16Operand>;
-def ADCsr  : WDCAddSubCarryInstructionStackRelative<0x63, addc, "ADC">;
-
-class ADDSUBStackRelativePseudo<SDNode PseudoOpNode>
-: WDCPseudoInst<
-  (outs AccumulatorRegisterClass:$dst),
-  (ins AccumulatorRegisterClass:$src, Operand<i16>:$slot),
-  [(set AccumulatorRegisterClass:$dst, (PseudoOpNode AccumulatorRegisterClass:$src, frameIndexPattern:$slot))]
->
-{
-  let hasCtrlDep = 1;
-  let isCommutable = 0;
-  let isAdd = 1;
-  let Constraints = "$dst = $src";
-  let mayLoad = 1;
-}
-
 let isAdd = 1 in {
-  def ADDsr : ADDSUBStackRelativePseudo<WDCAddStackRelativeNode>;
+  def ADCi  : WDCAddSubCarryInstructionImmediate<0x69, adde, "ADC", UnsignedImm16Operand>;
+  def ADCsr : WDCAddSubCarryInstructionStackRelative<0x63, addc, "ADC">;
+  def ADDsr : ADDSUBStackRelativePseudo<ADDsrNode>;
 }
-def SUBsr : ADDSUBStackRelativePseudo<WDCSubStackRelativeNode>;
 
-class ADDImmediatePseudo
-: WDCPseudoInst<
-  (outs AccumulatorRegisterClass:$dst),
-  (ins AccumulatorRegisterClass:$src, Operand<i16>:$constant),
-  [(set AccumulatorRegisterClass:$dst, (WDCAddImmediateNode AccumulatorRegisterClass:$src, (i16 imm:$constant)))]
->
-{
-  let isCommutable = 0;
-  let isAdd = 1;
-  let Constraints = "$dst = $src";
-  let mayLoad = 1;
-}
+def SUBsr : ADDSUBStackRelativePseudo<SUBsrNode>;
+
 def ADDi : ADDImmediatePseudo;
 
 def SBCi   : WDCAddSubCarryInstructionImmediate<0xE9, subc, "SBC", UnsignedImm16Operand>;
