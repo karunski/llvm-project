@@ -17,6 +17,7 @@
 #include "WDCAsmPrinter.h"
 #include "WDCInstructionInfo.h"
 #include "MCTargetDesc/WDCBaseInfo.h"
+#include "MCTargetDesc/WDCMCExpr.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/MachineOperand.h"
@@ -27,8 +28,8 @@
 
 using namespace llvm;
 
-WDCMCInstLower::WDCMCInstLower(WDCAsmPrinter &/*asmprinter*/)
-  /*: AsmPrinter(asmprinter) */{}
+WDCMCInstLower::WDCMCInstLower(WDCAsmPrinter &asmprinter)
+    : AsmPrinter{asmprinter} {}
 
 void WDCMCInstLower::Initialize(MCContext* C) {
   Ctx = C;
@@ -44,6 +45,26 @@ void WDCMCInstLower::Initialize(MCContext* C) {
 //     Inst.addOperand(Opnd2);
 // }
 
+MCOperand WDCMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
+                                    MachineOperandType MOTy, unsigned /*Offset*/) const {
+  MCSymbol * Symbol = nullptr;
+
+  switch (MOTy) {
+  case MachineOperand::MO_GlobalAddress:
+    Symbol = AsmPrinter.getSymbol(MO.getGlobal());
+    //Offset += MO.getOffset();
+    break;
+
+  default:
+    llvm_unreachable("<unknown operand type>");
+  }
+
+  const auto Kind = MCSymbolRefExpr::VK_None;
+  const auto SymbolExpr = MCSymbolRefExpr::create(Symbol, Kind, *Ctx);
+  const auto Expr = WDCMCExpr::create(WDCMCExpr::WDCExprKind::AbsLong, SymbolExpr, *Ctx);
+  return MCOperand::createExpr(Expr);
+}
+
 //@LowerOperand {
 MCOperand WDCMCInstLower::LowerOperand(const MachineOperand& MO,
                                         unsigned offset) const {
@@ -58,6 +79,8 @@ MCOperand WDCMCInstLower::LowerOperand(const MachineOperand& MO,
     return MCOperand::createReg(MO.getReg());
   case MachineOperand::MO_Immediate:
     return MCOperand::createImm(MO.getImm() + offset);
+  case MachineOperand::MO_GlobalAddress:
+    return LowerSymbolOperand(MO, MOTy, offset);
   case MachineOperand::MO_RegisterMask:
     break;
  }

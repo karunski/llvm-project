@@ -30,7 +30,7 @@ using namespace llvm;
 
 WDCInstPrinter::WDCInstPrinter(const MCAsmInfo &MAI, const MCInstrInfo &MII,
   const MCRegisterInfo &MRI)
-: MCInstPrinter(MAI, MII, MRI) {}
+: MCInstPrinter{MAI, MII, MRI} {}
 
 void WDCInstPrinter::printRegName(raw_ostream &OS, MCRegister RegNo) {
 //- getRegisterName(RegNo) defined in WDCGenAsmWriter.inc which indicate in 
@@ -80,6 +80,18 @@ void WDCInstPrinter::printUnsignedImm8(const MCInst * MI, int opNum, raw_ostream
 
 void WDCInstPrinter::printUnsignedImm16(const MCInst * MI, int opNum, raw_ostream &O) {
   printUnsignedImm(MI, opNum, O, 16);
+}
+
+void WDCInstPrinter::printAbsoluteLong(const MCInst * MI, int opNum, raw_ostream &O) {
+  const MCOperand &MO = MI->getOperand(opNum);
+  if (MO.isImm()) {
+    const auto imm = static_cast<uint32_t>(MO.getImm());
+    O << "$" << format_hex_no_prefix((imm >> 16) & 0xff, 2) << ":"
+      << format_hex_no_prefix((imm & 0xffff), 4);
+  }
+
+  const auto expr = MO.getExpr();
+  expr->print(O, &this->MAI, false);
 }
 
 void llvm::WDCInstPrinter::printStackOffset(const MCInst *MI, int opNum,

@@ -30,12 +30,14 @@ class LLVM_LIBRARY_VISIBILITY WDCMCInstLower {
 //@2
   typedef MachineOperand::MachineOperandType MachineOperandType;
   MCContext *Ctx;
-  // WDCAsmPrinter &AsmPrinter;
+  WDCAsmPrinter &AsmPrinter;
 public:
   WDCMCInstLower(WDCAsmPrinter &asmprinter);
   void Initialize(MCContext* C);
   void Lower(const MachineInstr *MI, MCInst &OutMI) const;
-  MCOperand LowerOperand(const MachineOperand& MO, unsigned offset = 0) const;
+  MCOperand LowerSymbolOperand(const MachineOperand &MO,
+                               MachineOperandType MOTy, unsigned Offset) const;
+  MCOperand LowerOperand(const MachineOperand &MO, unsigned offset = 0) const;
 };
 }
 

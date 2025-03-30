@@ -94,8 +94,14 @@ class InstStkRel<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pat
   let mayLoad = true;
 }
 
-// class InstructionAbsoluteLong<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
-// : WDCInst<>
+class InstAbsLong<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
+: Inst<opcode, outs, ins, asmstr, pattern> {
+  field bits<32> Inst;
+  bits<24> LongPtr;
+  let Size = 4;
+  let Inst{7-0} = Opcode;
+  let mayLoad = true;
+}
 
 def SignedImm16Operand      : Operand<i16> {
   let DecoderMethod= "DecodeSimm16";
@@ -111,6 +117,10 @@ def SignedImm8Operand : Operand<i8> {
 
 def StackOffsetOperand : Operand<iPTR> {
   let PrintMethod = "printStackOffset";
+}
+
+def OprndAbsLong : Operand<iPTR> {
+  let PrintMethod = "printAbsoluteLong";
 }
 
 // Pattern 

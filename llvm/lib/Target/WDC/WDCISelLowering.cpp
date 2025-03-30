@@ -76,6 +76,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   addRegisterClass(MVT::i16, &WDC::AccumulatorRegisterClassRegClass);
   addRegisterClass(MVT::i16, &WDC::IndexRegsRegClass);
   addRegisterClass(MVT::i8, &WDC::StatusRegRegClass);
+  addRegisterClass(MVT::i32, &WDC::FakeRegsRegClass);
 
   setBooleanContents(TargetLowering::ZeroOrOneBooleanContent);
 
@@ -88,6 +89,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::SRA,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::XOR,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SETCC, MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::GlobalAddress, MVT::i32, LegalizeAction::Custom);
 
   // Only SETEQ and SETGE have direct corresponding results after a CMP instruction (Z, and C, respectively)
   // The rest of the operations can be implemented in terms of these two comparisons:
@@ -325,7 +327,9 @@ SDValue llvm::WDCTargetLowering::ExpandShift(SDValue node, SelectionDAG & DAG, u
 
 SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
                                                 SelectionDAG &DAG) const {
-  if (const auto opcode = node.getOpcode(); opcode == ISD::ADD) {
+  const SDLoc dbgLoc{node};
+
+  if (const auto opcode = static_cast<ISD::NodeType>(node.getOpcode()); opcode == ISD::ADD) {
     return LowerAdd(node, DAG);
   }
   else if (opcode == ISD::SUB) {
@@ -352,14 +356,33 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
   else if (opcode == ISD::SETCC) {
     return LowerStackRelativeOperand(node, DAG, WDCISD::SETCCsr);
   }
+  else if (opcode == ISD::GlobalAddress)
+  {
+    return LowerGlobalAddress(cast<GlobalAddressSDNode>(node.getNode()), dbgLoc, DAG);
+  }
 
   return TargetLowering::LowerOperation(node, DAG);
 }
 
-SDValue llvm::WDCTargetLowering::PerformDAGCombine(SDNode *nodeptr,
-                                                   DAGCombinerInfo &DCI) const {
-  return SDValue();
+SDValue llvm::WDCTargetLowering::LowerGlobalAddress(GlobalAddressSDNode * glblAddrNd, const SDLoc & dbgLoc, SelectionDAG & DAG) const {
+  const auto glblAddr = glblAddrNd->getGlobal();
+  const auto addrValT = glblAddrNd->getValueType(0);
+  return DAG.getNode(WDCISD::Wrapper, dbgLoc, addrValT, DAG.getTargetGlobalAddress(glblAddr, dbgLoc, addrValT));
 }
+// SDValue llvm::WDCTargetLowering::PerformDAGCombine(SDNode *nodeptr,
+//                                                    DAGCombinerInfo &DCI) const {
+//   const auto nodeop = static_cast<ISD::NodeType>(nodeptr->getOpcode());
+//   if (nodeop == ISD::LOAD) {
+//     const auto loadnode = cast<LoadSDNode>(nodeptr);
+//     const auto addr = loadnode->getBasePtr();
+//     const auto addr_node_op = static_cast<ISD::NodeType>(addr.getOpcode());
+//     if (addr_node_op == ISD::GlobalAddress) {
+//       const auto addrnode = cast<GlobalAddressSDNode>(addr.getNode());
+//       const auto global = addrnode->getGlobal();
+//     }
+//   }
+//   return SDValue();
+// }
 
 MVT llvm::WDCTargetLowering::getScalarShiftAmountTy(const DataLayout &,
                                                     EVT evt) const {

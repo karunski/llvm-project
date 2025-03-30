@@ -18,8 +18,7 @@ include "WDCInstructionFormats.td"
 include "WDCSDNodes.td"
 include "WDCPseudoInstructions.td"
 
-def LDAi   : WDCLoadInstructionImmediate<0xA9, "LDA", UnsignedImm16Operand>;
-def LDAsr  : WDCLoadInstructionStackRelative<0xA3, "LDA">;
+
 def STAsr  : WDCStoreInstructionStackRelative<0x83, "STA">;
 def RTL    : WDCReturnInstruction<0x6b, "RTL">;
 
@@ -49,14 +48,19 @@ def CMPsr : InstStkRel<0xc3, (outs StatusReg:$sr),
 def EORi : WDCLogicInstructionImmediate<0x49, xor, "EOR", UnsignedImm16Operand>;
 def EORsr : InstructionLogicStackRelative<0x43, "EOR", EORsrNode>;
 
-def SUBsr : ADDSUBStackRelativePseudo<SUBsrNode>;
-
-def SBCi   : WDCAddSubCarryInstructionImmediate<0xE9, subc, "SBC", UnsignedImm16Operand>;
-def SBCsr  : WDCAddSubCarryInstructionStackRelative<0xE3,subc, "SBC">;
+def LDAal : InstAbsLong<0xAF, (outs AccumulatorRegisterClass:$dst), (ins OprndAbsLong:$src),
+                        "LDA\t$src", [(set AccumulatorRegisterClass:$dst, (load (Wrapper (tglobaladdr:$src))))]>;
+def LDAi   : WDCLoadInstructionImmediate<0xA9, "LDA", UnsignedImm16Operand>;
+def LDAsr  : WDCLoadInstructionStackRelative<0xA3, "LDA">;
 
 def LSR : InstImpl<0x4A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                                 "LSR\tA", 
                                 [(set AccumulatorRegisterClass:$dst, (srl AccumulatorRegisterClass:$src, OnePattern))]>;
+
+def SUBsr : ADDSUBStackRelativePseudo<SUBsrNode>;
+
+def SBCi   : WDCAddSubCarryInstructionImmediate<0xE9, subc, "SBC", UnsignedImm16Operand>;
+def SBCsr  : WDCAddSubCarryInstructionStackRelative<0xE3,subc, "SBC">;
 
 def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
 def ORAsr  : InstructionLogicStackRelative<0x03, "ORA", ORAsrNode>;
@@ -97,6 +101,7 @@ def XBA : InstImpl<0xEB, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorR
                                 "XBA", [(set AccumulatorRegisterClass:$dst, (bswap AccumulatorRegisterClass:$src))]>;
 
 // Small immediates
+def : Pat<(globaladdr:$addr), (imm:$addr)>;
 def : Pat<(i16 SignedImm16Pattern:$in), (LDAi imm:$in)>;
 def : Pat<(seteq AccumulatorRegisterClass:$src, UnsignedImm16Pattern:$const), (
   ANDi (LSR (COPY_TO_REGCLASS (CMPi AccumulatorRegisterClass:$src, imm:$const), AccumulatorRegisterClass)), 1)>;

@@ -54,7 +54,8 @@ private:
     printOperand(MI, OpNum, O);
   }
   void printUnsignedImm16(const MCInst *MI, int opNum, raw_ostream &O);
-  void printUnsignedImm8(const MCInst * MI, int opNum, raw_ostream &O);
+  void printAbsoluteLong(const MCInst *MI, int opNum, raw_ostream &O);
+  void printUnsignedImm8(const MCInst *MI, int opNum, raw_ostream &O);
   void printMemOperand(const MCInst *MI, int opNum, raw_ostream &O);
   void printStackOffset(const MCInst * MI, int opNum, raw_ostream&os);
 

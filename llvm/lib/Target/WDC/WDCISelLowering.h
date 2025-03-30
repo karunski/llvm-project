@@ -70,7 +70,7 @@ namespace llvm {
       EORsr,
       SETCCsr,
       SUBsr,
-      ORAsr,
+      ORAsr
     };
   }
 
@@ -175,13 +175,17 @@ namespace llvm {
                         const SDLoc &dl, SelectionDAG &DAG) const override;
 
     SDValue LowerOperation(SDValue node, SelectionDAG &DAG) const override;
+
+    SDValue LowerGlobalAddress(GlobalAddressSDNode *glblAddrNd, const SDLoc & dbgLoc,
+                               SelectionDAG &DAG) const;
+
     SDValue LowerAdd(SDValue node, SelectionDAG &DAG) const;
 
     SDValue LowerStackRelativeOperand(SDValue node, SelectionDAG &DAG, WDCISD::NodeType wdcNodeType) const;
 
     SDValue ExpandShift(SDValue node, SelectionDAG &DAG, unsigned targetOpcode) const;
 
-    SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
+    // SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
 
     MVT getScalarShiftAmountTy(const DataLayout &, EVT) const override;
 

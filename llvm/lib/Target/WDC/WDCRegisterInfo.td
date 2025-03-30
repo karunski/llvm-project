@@ -25,6 +25,10 @@ class WDCGeneralPurposeReg<string name> : WDCReg<name>;
 class WDCArchReg<string name> : WDCReg<name>;
 //class Cpu0C0Reg<bits<16> Enc, string n> : Cpu0Reg<Enc, n>;
 
+class WDCFakeReg<string name> : WDCReg<name> {
+  let isArtificial = true;
+}
+
 //===----------------------------------------------------------------------===//
 //@Registers
 //===----------------------------------------------------------------------===//
@@ -38,6 +42,8 @@ let Namespace = "WDC" in {
   def S  : WDCArchReg<"S">,   DwarfRegNum<[3]>;
   def PC : WDCArchReg<"PC">,  DwarfRegNum<[4]>;
   def CARRY : WDCReg<"C">;
+
+  def ADDR0 : WDCFakeReg<"ADDR0">, DwarfRegNum<[100]>;
 }
 
 class WDCStatusReg : WDCArchReg<"P">
@@ -76,3 +82,5 @@ def OutRegs : RegisterClass<"WDC", [i16], 8, (add A, X, Y)>;
 let Size=8 in {
   def CarryRegisterClass : RegisterClass<"WDC", [i1], 8, (add CARRY)>;
 }
+
+def FakeRegs : RegisterClass<"WDC", [i32], 8, (add ADDR0)>;
