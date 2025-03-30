@@ -57,9 +57,11 @@ class WDCImmediateInstruction<bits<8> opcode, dag outs, dag ins, string asmstr, 
 : WDCInst<outs, ins, asmstr, pattern>
 {
   field bits<24> Inst;
+  bits<16> constant;
   let Size = 3;
   let Opcode = opcode;
-  let Inst{23-16} = opcode;
+  let Inst{23-8} = constant;
+  let Inst{7-0} = opcode;
   let m_addrMode = WDCAddressModeImmediate;
 }
 
@@ -69,8 +71,8 @@ class InstructionImm8<bits<8> opcode, string asmstr>
   bits<8> const;
   let Opcode = opcode;
   let Size = 2;
-  let Inst{0-7} = Opcode;
-  let Inst{8-15} = const;
+  let Inst{7-0} = Opcode;
+  let Inst{15-8} = const;
 }
 
 class WDCImpliedInstruction<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
@@ -90,8 +92,8 @@ class WDCStackRelativeInstruction<bits<8> opcode, dag outs, dag ins, string asms
   bits<8> spoffset;
   let Size = 2;
   let Opcode = opcode;
-  let Inst{15-8} = opcode; 
-  let Inst{7-0} = spoffset;
+  let Inst{15-8} = spoffset; 
+  let Inst{7-0} = opcode;
   let mayLoad = true;
 }
 

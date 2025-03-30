@@ -130,7 +130,7 @@ void WDCFrameLowering::emitPrologue(MachineFunction &machineFunction,
   // const MCRegisterInfo *MRI = MMI.getContext().getRegisterInfo();
 
   // Save Direct Page Pointer
-  BuildMI(basicBlock, basicBlockIter, debugLoc, instructionInfo.get(WDC::PHB));
+  BuildMI(basicBlock, basicBlockIter, debugLoc, instructionInfo.get(WDC::PHD));
 
   // Adjust stack.
   instructionInfo.adjustStackPtr(WDC::S, -StackSize, basicBlock, basicBlockIter);
@@ -198,7 +198,7 @@ void WDCFrameLowering::emitEpilogue(MachineFunction &machineFunc,
 
   // restore direct page
   const auto debugLoc = basicBlockIter != machineBasicBlock.end() ? basicBlockIter->getDebugLoc() : DebugLoc{};
-  BuildMI(machineBasicBlock, basicBlockIter, debugLoc, targetInstrInfo.get(WDC::PLB));
+  BuildMI(machineBasicBlock, basicBlockIter, debugLoc, targetInstrInfo.get(WDC::PLD));
 }
 
 void WDCFrameLowering::determineCalleeSaves(MachineFunction &MF,

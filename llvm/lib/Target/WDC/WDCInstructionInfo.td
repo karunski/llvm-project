@@ -22,10 +22,6 @@ def LDAi   : WDCLoadInstructionImmediate<0xA9, "LDA", UnsignedImm16Operand>;
 def LDAsr  : WDCLoadInstructionStackRelative<0xA3, "LDA">;
 def STAsr  : WDCStoreInstructionStackRelative<0x83, "STA">;
 def RTL    : WDCReturnInstruction<0x6b, "RTL">;
-def TSC    : WDCTransferInstruction<0x3B, "TSC">;
-def TDC    : WDCTransferInstruction<0x7D, "TDC">;
-def TCS    : WDCTransferInstruction<0x1B, "TCS">;
-def TCD    : WDCTransferInstruction<0x5D, "TCD">;
 
 def CLC    : WDCStatusControlInstruction<0x18, "CLC", CarryRegisterClass, []>;
 
@@ -65,10 +61,11 @@ def LSR : WDCImpliedInstruction<0x4A, (outs AccumulatorRegisterClass:$dst), (ins
 def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
 def ORAsr  : InstructionLogicStackRelative<0x03, "ORA", ORAsrNode>;
 
-def PHB : WDCStackInstruction<0x0B, "PHB">;
+def PHD : WDCStackInstruction<0x0B, "PHD">;
 def PHP : WDCStackInstruction<0x08, "PHP">;
 def PLA : WDCStackInstruction<0x68, "PLA">;
 def PLB : WDCStackInstruction<0xAB, "PLB">;
+def PLD : WDCStackInstruction<0x2B, "PLD">;
 def PLP : WDCStackInstruction<0x28, "PLP">;
 
 def ROL : WDCImpliedInstruction<0x2a, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
@@ -91,6 +88,10 @@ def SRA : WDCPseudoInst<(outs AccumulatorRegisterClass:$dst), (ins AccumulatorRe
 
 // "Transfer Carry to least significant bit of A" == ROL A 
 def TCA : WDCPseudoInst<(outs AccumulatorRegisterClass:$dst), (ins StatusReg:$src), []>;
+def TSC : WDCTransferInstruction<0x3B, "TSC">;
+def TDC : WDCTransferInstruction<0x7D, "TDC">;
+def TCS : WDCTransferInstruction<0x1B, "TCS">;
+def TCD : WDCTransferInstruction<0x5B, "TCD">;
 
 def XBA : WDCImpliedInstruction<0xEB, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                                 "XBA", [(set AccumulatorRegisterClass:$dst, (bswap AccumulatorRegisterClass:$src))]>;
