@@ -179,7 +179,7 @@ namespace llvm {
 
     SDValue LowerStackRelativeOperand(SDValue node, SelectionDAG &DAG, WDCISD::NodeType wdcNodeType) const;
 
-    SDValue LowerAnd(SDValue node, SelectionDAG &DAG) const;
+    SDValue LowerSetCC(SDValue node, SelectionDAG &DAG) const;
 
     SDValue ExpandShift(SDValue node, SelectionDAG &DAG, unsigned targetOpcode) const;
 

@@ -72,22 +72,26 @@ def PHP : WDCStackInstruction<0x08, "PHP">;
 def PLB : WDCStackInstruction<0xAB, "PLB">;
 def PLP : WDCStackInstruction<0x28, "PLP">;
 
-def ROR : WDCImpliedInstruction<0x2A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+def ROL : WDCImpliedInstruction<0x2a, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+                                "ROL\tA", []>;
+def ROR : WDCImpliedInstruction<0x6A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                                 "ROR\tA", []>;
 
 def ROTL : WDCPseudoInst<(outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                          [(set AccumulatorRegisterClass:$dst, (rotl AccumulatorRegisterClass:$src, OnePattern))]>;
 
-def SEP : InstructionImm8<0xE2, "SEP">;
-
-def SRA : WDCPseudoInst<(outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
-                         [(set AccumulatorRegisterClass:$dst, (sra AccumulatorRegisterClass:$src, OnePattern))]>;
-
 def REP : InstructionImm8<0xC2, "REP">;
+def SEP : InstructionImm8<0xE2, "SEP">;
 
 let isReturn=1, isTerminator=1, isBarrier=1, hasCtrlDep=1 in {
   def RetRTL : WDCPseudoInst<(outs), (ins), [(WDCRetNode)]>;
 }
+
+def SRA : WDCPseudoInst<(outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+                         [(set AccumulatorRegisterClass:$dst, (sra AccumulatorRegisterClass:$src, OnePattern))]>;
+
+// "Transfer Carry to least significant bit of A" == ROL A 
+def TCA : WDCPseudoInst<(outs AccumulatorRegisterClass:$dst), (ins StatusReg:$src), []>;
 
 def XBA : WDCImpliedInstruction<0xEB, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                                 "XBA", [(set AccumulatorRegisterClass:$dst, (bswap AccumulatorRegisterClass:$src))]>;
@@ -96,6 +100,11 @@ def XBA : WDCImpliedInstruction<0xEB, (outs AccumulatorRegisterClass:$dst), (ins
 def : Pat<(i16 SignedImm16Pattern:$in), (LDAi imm:$in)>;
 def : Pat<(seteq AccumulatorRegisterClass:$src, UnsignedImm16Pattern:$const), (
   ANDi (LSR (COPY_TO_REGCLASS (CMPi AccumulatorRegisterClass:$src, imm:$const), AccumulatorRegisterClass)), 1)>;
+
+// SETCC comparisons between the accumulator and a frame index
+// For seteq (setne comes from this as well)
 def : Pat<(SETCCsrNode AccumulatorRegisterClass:$src, frameIndexPattern:$spoffset, SETEQ),
           (ANDi (LSR (COPY_TO_REGCLASS (CMPsr AccumulatorRegisterClass:$src, $spoffset), AccumulatorRegisterClass)), 1)>;
+def : Pat<(SETCCsrNode AccumulatorRegisterClass:$src, frameIndexPattern:$spoffset, SETGE),
+          (ANDi (TCA (CMPsr AccumulatorRegisterClass:$src, $spoffset)), 1)>;
 // def : Pat<(zext StatusReg:$in), (ANDi (COPY_TO_REGCLASS $in, AccumulatorRegisterClass), 0x00FF)>;

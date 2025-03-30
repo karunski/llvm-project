@@ -90,6 +90,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::SETCC, MVT::i16, LegalizeAction::Custom);
 
   setCondCodeAction({ISD::SETNE}, MVT::i16, LegalizeAction::Expand); // Expands not-equal by negating a seteq.
+  setCondCodeAction({ISD::SETLT}, MVT::i16, LegalizeAction::Custom);
 
   // must, computeRegisterProperties - Once all of the register classes are
   //  added, this allows us to compute derived properties we expose.
@@ -297,6 +298,23 @@ SDValue llvm::WDCTargetLowering::LowerStackRelativeOperand(SDValue node, Selecti
   return {};
 }
 
+SDValue llvm::WDCTargetLowering::LowerSetCC(SDValue node,
+                                            SelectionDAG &DAG) const {
+  const auto debugLoc = SDLoc{node};
+  const auto valueType = node.getValueType();
+  const auto lhs          = node.getOperand(0);
+  const auto rhs          = node.getOperand(1);
+  const auto condCodeNode = node.getOperand(2);
+
+  if (const auto condCode = cast<CondCodeSDNode>(condCodeNode)->get(); condCode == ISD::SETLT) {
+    const auto invertedSetcc = DAG.getNode(ISD::SETCC, debugLoc, valueType, lhs, rhs, DAG.getCondCode(ISD::SETGE));
+    const auto immOne        = DAG.getConstant(1, debugLoc, valueType);
+    const auto invert        = DAG.getNode(ISD::XOR, debugLoc, valueType, {invertedSetcc, immOne});
+    return invert;
+  }
+  return LowerStackRelativeOperand(node, DAG, WDCISD::SETCCsr);
+}
+
 SDValue llvm::WDCTargetLowering::ExpandShift(SDValue node, SelectionDAG & DAG, unsigned targetOpcode) const {  
   if (const auto shiftAmtNode = dyn_cast<ConstantSDNode>(node.getOperand(1).getNode()); shiftAmtNode) {
     const auto debugLoc = SDLoc{node};
@@ -343,7 +361,7 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
     return LowerStackRelativeOperand(node, DAG, WDCISD::EORsr);
   }
   else if (opcode == ISD::SETCC) {
-    return LowerStackRelativeOperand(node, DAG, WDCISD::SETCCsr);
+    return LowerSetCC(node, DAG);//LowerStackRelativeOperand(node, DAG, WDCISD::SETCCsr);
   }
 
   return TargetLowering::LowerOperation(node, DAG);
