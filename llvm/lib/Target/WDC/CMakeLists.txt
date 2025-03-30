@@ -28,6 +28,8 @@ add_llvm_target(WDCCodeGen
   WDCISelLowering.cpp
   WDCRegisterInfo.cpp
   WDCTargetObjectFile.cpp
+  WDCISelDAGToDAG.cpp
+  WDCSEISelDAGToDAG.cpp
   WDCMCInstLower.cpp
   WDCSEInstructionInfo.cpp
   WDCSERegisterInfo.cpp

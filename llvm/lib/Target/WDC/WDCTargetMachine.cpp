@@ -15,6 +15,7 @@
 #include "WDC.h"
 #include "WDCSubtarget.h"
 #include "WDCTargetObjectFile.h"
+#include "WDCSEISelDAGToDAG.h"
 
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/Function.h"
@@ -35,27 +36,7 @@ extern "C" void LLVMInitializeWDCTarget() {
 
 static std::string computeDataLayout(const Triple &TT, StringRef CPU,
                                      const TargetOptions &Options) {
-  std::string Ret = "";
-  // There are both little and big endian WDC.
-  //if (isLittle)
-    Ret += "e";
-//   else
-//     Ret += "E";
-
-  Ret += "-m:m";
-
-  // Pointers are 32 bit on some ABIs.
-  Ret += "-p:32:32";
-
-  // 8 and 16 bit integers only need to have natural alignment, but try to
-  // align them to 32 bits. 64 bit integers have natural alignment.
-  Ret += "-i8:8:32-i16:16:32-i64:64";
-
-  // 32 bit registers are always available and the stack is at least 64 bit
-  // aligned.
-  Ret += "-n32-S64";
-
-  return Ret;
+  return "e-S16-p:24:16-i8:8-i16:8-i32:8-i64:8-f32:8-f64:8-n16-a:8";
 }
 
 static Reloc::Model getEffectiveRelocModel(bool JIT,
@@ -144,6 +125,11 @@ public:
 
   WDCTargetMachine &getWDCTargetMachine() const {
     return getTM<WDCTargetMachine>();
+  }
+
+  bool addInstSelector() override {
+    addPass(createWDCSEISelDag(getWDCTargetMachine(), getOptLevel()));
+    return false;
   }
 
   const WDCSubtarget &getWDCSubtarget() const {

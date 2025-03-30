@@ -41,6 +41,7 @@
 #include "Targets/X86.h"
 #include "Targets/XCore.h"
 #include "Targets/Xtensa.h"
+#include "Targets/WDC.h"
 #include "clang/Basic/Diagnostic.h"
 #include "clang/Basic/DiagnosticFrontend.h"
 #include "llvm/ADT/StringExtras.h"
@@ -116,6 +117,9 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
   switch (Triple.getArch()) {
   default:
     return nullptr;
+
+  case llvm::Triple::wdc:
+    return createWDCTargetInfo(Triple, Opts);
 
   case llvm::Triple::arc:
     return std::make_unique<ARCTargetInfo>(Triple, Opts);
