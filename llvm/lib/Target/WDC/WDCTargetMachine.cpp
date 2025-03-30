@@ -15,7 +15,7 @@
 #include "WDC.h"
 #include "WDCSubtarget.h"
 #include "WDCTargetObjectFile.h"
-#include "WDCSEISelDAGToDAG.h"
+#include "WDCISelDAGToDAG.h"
 
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/Function.h"
@@ -128,7 +128,7 @@ public:
   }
 
   bool addInstSelector() override {
-    addPass(createWDCSEISelDag(getWDCTargetMachine(), getOptLevel()));
+    addPass(createWDCISelDag(getWDCTargetMachine(), getOptLevel()));
     return false;
   }
 
