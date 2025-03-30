@@ -57,6 +57,7 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::Wrapper:           return "WDCISD::Wrapper";
   case WDCISD::ADDi:              return "WDCISD::ADDi";
   case WDCISD::ADDsr:             return "WDCISD::ADDsr";
+  case WDCISD::SUBsr:             return "WDCISD::SUBsr";
   default:                         return NULL;
   }
 }
@@ -76,7 +77,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   computeRegisterProperties(Subtarget.getRegisterInfo());
 
   setOperationAction(ISD::ADD, MVT::i16, LegalizeAction::Custom);
-  // setOperationAction(ISD::UADDO_CARRY, MVT::i16, LegalizeAction::Legal);
+  setOperationAction(ISD::SUB, MVT::i16, LegalizeAction::Custom);
 }
 
 std::unique_ptr<const WDCTargetLowering> WDCTargetLowering::create(const WDCTargetMachine &TM,
@@ -228,34 +229,51 @@ WDCTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
   return DAG.getNode(WDCISD::Ret, DL, MVT::Other, RetOps);
 }
 
-SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
-                                                SelectionDAG &DAG) const {
+SDValue llvm::WDCTargetLowering::LowerAdd(SDValue node, SelectionDAG & DAG) const {
   const SDLoc debugLoc{node};
 
-  if (node.getOpcode() == ISD::ADD)
-  {
-    const SDValue operands[] = {node.getOperand(0), node.getOperand(1) };
-    //const EVT types[] = {operands[0].getValueType(), operands[1].getValueType()};
-    const SDNode * nodes[] = {operands[0].getNode(), operands[1].getNode()};
-    const unsigned nodesOpcodes[] = {nodes[0]->getOpcode(), nodes[1]->getOpcode()};
-    if (nodesOpcodes[1] == ISD::LOAD)
-    {
-      const auto loadNode = nodes[1];
-      const SDValue loadOperands[] = {loadNode->getOperand(0), loadNode->getOperand(1), loadNode->getOperand(2)};
-      const SDNode * loadOperandNodes[] = {loadOperands[0].getNode(), loadOperands[1].getNode(), loadOperands[2].getNode()};
-      // const unsigned loadOperandOpcodes[] = {loadOperandNodes[0]->getOpcode(), loadOperandNodes[1]->getOpcode()};
-      if (const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(loadOperandNodes[1]); frameIndexNode)
-      {
-        return DAG.getNode(
-            WDCISD::ADDsr, debugLoc, {node.getValueType()},
-            {loadOperands[0], operands[0], loadOperands[1]});
-      }
+  const SDValue operands[] = {node.getOperand(0), node.getOperand(1) };
+  //const EVT types[] = {operands[0].getValueType(), operands[1].getValueType()};
+  const SDNode * nodes[] = {operands[0].getNode(), operands[1].getNode()};
+  const unsigned nodesOpcodes[] = {nodes[0]->getOpcode(), nodes[1]->getOpcode()};
+  if (nodesOpcodes[1] == ISD::LOAD) {
+    const auto loadNode = nodes[1];
+    const SDValue loadOperands[] = {loadNode->getOperand(0), loadNode->getOperand(1), loadNode->getOperand(2)};
+    const SDNode * loadOperandNodes[] = {loadOperands[0].getNode(), loadOperands[1].getNode(), loadOperands[2].getNode()};
+    // const unsigned loadOperandOpcodes[] = {loadOperandNodes[0]->getOpcode(), loadOperandNodes[1]->getOpcode()};
+    if (const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(loadOperandNodes[1]); frameIndexNode) {
+      return DAG.getNode(
+          WDCISD::ADDsr, debugLoc, {node.getValueType()},
+          {loadOperands[0], operands[0], loadOperands[1]});
     }
-    else if (nodesOpcodes[1] == ISD::Constant)
-    {
-      return DAG.getNode(WDCISD::ADDi, debugLoc, {node.getValueType()},
-                         {operands[0], operands[1]});
+  }
+  else if (nodesOpcodes[1] == ISD::Constant) {
+    return DAG.getNode(WDCISD::ADDi, debugLoc, {node.getValueType()},
+                        {operands[0], operands[1]});
+  }
+  return TargetLowering::LowerOperation(node, DAG);
+}
+
+SDValue llvm::WDCTargetLowering::LowerSub(SDValue node, SelectionDAG & DAG) const {
+  const SDLoc debugLoc{node};
+
+  const auto subtractorOperand = node.getOperand(1);
+  if (const auto loadNode = dyn_cast<LoadSDNode>(subtractorOperand.getNode()); loadNode) {
+    const auto loadBasePtrValue = loadNode->getBasePtr();
+    if (const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(loadBasePtrValue.getNode()); frameIndexNode) {
+      return DAG.getNode(WDCISD::SUBsr, debugLoc, {node.getValueType()}, {loadNode->getChain(), node.getOperand(0), loadBasePtrValue});
     }
+  }
+  return TargetLowering::LowerOperation(node, DAG);
+}
+
+SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
+                                                SelectionDAG &DAG) const {
+  if (const auto opcode = node.getOpcode(); opcode == ISD::ADD) {
+    return LowerAdd(node, DAG);
+  }
+  else if (opcode == ISD::SUB) {
+    return LowerSub(node, DAG);
   }
 
   return TargetLowering::LowerOperation(node, DAG);

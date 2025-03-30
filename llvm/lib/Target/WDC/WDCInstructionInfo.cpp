@@ -93,6 +93,8 @@ MachineBasicBlock &MBB = *MI.getParent();
   case WDC::ADDsr:
     expandADD(MBB, MI, WDC::ADCsr);
     break;
+  case WDC::SUBsr:
+    expandSUB(MBB, MI, WDC::SBCsr);
   }
 
   MBB.erase(MI);
@@ -172,11 +174,22 @@ void llvm::WDCInstrInfo::expandRTL(MachineBasicBlock &MBB,
   BuildMI(MBB, I, I->getDebugLoc(), get(WDC::RTL));
 }
 
-void llvm::WDCInstrInfo::expandADD(MachineBasicBlock &MBB, MachineBasicBlock::iterator I, const unsigned realOpcode) const {
-  const MachineOperand operands[] = {I->getOperand(0), I->getOperand(1), I->getOperand(2)};
+void llvm::WDCInstrInfo::expandADD(MachineBasicBlock &MBB,
+                                   MachineBasicBlock::iterator I,
+                                   const unsigned realOpcode) const {
+  const MachineOperand operands[] = {I->getOperand(0), I->getOperand(1),
+                                     I->getOperand(2)};
   BuildMI(MBB, I, I->getDebugLoc(), get(WDC::CLC));
   BuildMI(MBB, I, I->getDebugLoc(), get(realOpcode))
       .add(operands[0])
       .add(operands[1])
       .add(operands[2]);
+}
+
+void llvm::WDCInstrInfo::expandSUB(MachineBasicBlock &MBB, MachineBasicBlock::iterator I, const unsigned realOpcode) const {
+  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::SEC));
+  BuildMI(MBB, I, I->getDebugLoc(), get(realOpcode))
+      .add(I->getOperand(0))
+      .add(I->getOperand(1))
+      .add(I->getOperand(2));
 }

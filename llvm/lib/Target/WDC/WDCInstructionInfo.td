@@ -20,11 +20,10 @@ include "WDCInstructionFormats.td"
 def WDCRetNode : SDNode<"WDCISD::Ret", SDTNone,
                      [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 
-def WDCAddStackRelativeNode : SDNode<
-  "WDCISD::ADDsr", 
-  SDTypeProfile<1, 2, [SDTCisInt<0>, SDTCisInt<1>]>,
-  [SDNPHasChain]
->;
+def BinaryOpNode : SDTypeProfile<1, 2, [SDTCisInt<0>, SDTCisInt<1>]>;
+
+def WDCAddStackRelativeNode : SDNode<"WDCISD::ADDsr", BinaryOpNode, [SDNPHasChain]>;
+def WDCSubStackRelativeNode : SDNode<"WDCISD::SUBsr", BinaryOpNode, [SDNPHasChain]>;
 
 def WDCAddImmediateNode : SDNode<
   "WDCISD::ADDi",
@@ -44,14 +43,15 @@ def TCD    : WDCTransferInstruction<0x5D, "TCD">;
 
 def CLC    : WDCStatusControlInstruction<0x18, "CLC", CarryRegisterClass, []>;
 def SEC    : WDCStatusControlInstruction<0x38, "SEC", CarryRegisterClass, []>;
+
 def ADCi   : WDCAddSubCarryInstructionImmediate<0x69, adde, "ADC", UnsignedImm16Operand>;
 def ADCsr  : WDCAddSubCarryInstructionStackRelative<0x63, addc, "ADC">;
 
-class ADDStackRelativePseudo
+class ADDSUBStackRelativePseudo<SDNode PseudoOpNode>
 : WDCPseudoInst<
   (outs AccumulatorRegisterClass:$dst),
   (ins AccumulatorRegisterClass:$src, Operand<i16>:$slot),
-  [(set AccumulatorRegisterClass:$dst, (WDCAddStackRelativeNode AccumulatorRegisterClass:$src, frameIndexPattern:$slot))]
+  [(set AccumulatorRegisterClass:$dst, (PseudoOpNode AccumulatorRegisterClass:$src, frameIndexPattern:$slot))]
 >
 {
   let hasCtrlDep = 1;
@@ -61,7 +61,10 @@ class ADDStackRelativePseudo
   let mayLoad = 1;
 }
 
-def ADDsr : ADDStackRelativePseudo;
+let isAdd = 1 in {
+  def ADDsr : ADDSUBStackRelativePseudo<WDCAddStackRelativeNode>;
+}
+def SUBsr : ADDSUBStackRelativePseudo<WDCSubStackRelativeNode>;
 
 class ADDImmediatePseudo
 : WDCPseudoInst<
@@ -78,6 +81,7 @@ class ADDImmediatePseudo
 def ADDi : ADDImmediatePseudo;
 
 def SBCi   : WDCAddSubCarryInstructionImmediate<0xE9, subc, "SBC", UnsignedImm16Operand>;
+def SBCsr  : WDCAddSubCarryInstructionStackRelative<0xE3,subc, "SBC">;
 
 def PHB : WDCStackInstruction<0x0B, "PHB">;
 def PLB : WDCStackInstruction<0xAB, "PLB">;

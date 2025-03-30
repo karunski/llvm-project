@@ -65,7 +65,8 @@ namespace llvm {
       Sync,
 
       ADDsr,
-      ADDi
+      ADDi,
+      SUBsr
     };
   }
 
@@ -170,6 +171,9 @@ namespace llvm {
                         const SDLoc &dl, SelectionDAG &DAG) const override;
 
     SDValue LowerOperation(SDValue node, SelectionDAG &DAG) const override;
+    SDValue LowerAdd(SDValue node, SelectionDAG &DAG) const;
+
+    SDValue LowerSub(SDValue node, SelectionDAG &DAG) const;
 
     SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
 
