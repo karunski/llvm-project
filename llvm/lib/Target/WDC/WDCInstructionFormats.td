@@ -99,6 +99,7 @@ def StackOffsetOperand : Operand<iPTR> {
 def SignedImm16Pattern  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
 def UnsignedImm16Pattern : PatLeaf<(imm), [{ return isUInt<16>(N->getZExtValue()); }]>;
 def SignedImm8Pattern : PatLeaf<(imm), [{ return isInt<8>(N->getSExtValue()); }]>;
+def OnePattern : PatLeaf<(i16 imm), [{ return N->isOne(); }]>;
 
 let WantsRoot = true in
 def frameIndexPattern : ComplexPattern<i16, 1, "SelectFrameIndex", [frameindex]>;

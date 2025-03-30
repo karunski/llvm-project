@@ -79,7 +79,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
 
   setOperationAction(ISD::ADD, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SUB, MVT::i16, LegalizeAction::Custom);
-  setOperationAction(ISD::SHL, MVT::i16, LegalizeAction::Custom);
+  // setOperationAction(ISD::SHL, MVT::i16, LegalizeAction::Custom);
 }
 
 std::unique_ptr<const WDCTargetLowering> WDCTargetLowering::create(const WDCTargetMachine &TM,
@@ -296,6 +296,11 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
 SDValue llvm::WDCTargetLowering::PerformDAGCombine(SDNode *nodeptr,
                                                    DAGCombinerInfo &DCI) const {
   return SDValue();
+}
+
+MVT llvm::WDCTargetLowering::getScalarShiftAmountTy(const DataLayout &,
+                                                    EVT evt) const {
+  return MVT::i16;
 }
 
 llvm::WDCTargetLowering::WDCCallingConvention::WDCCallingConvention(

@@ -180,6 +180,8 @@ namespace llvm {
 
     SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
 
+    MVT getScalarShiftAmountTy(const DataLayout &, EVT) const override;
+
   };
 }
 

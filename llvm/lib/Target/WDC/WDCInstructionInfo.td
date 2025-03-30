@@ -37,6 +37,9 @@ let isAdd = 1 in {
   def ADDsr : ADDSUBStackRelativePseudo<ADDsrNode>;
 }
 
+def ASL : WDCImpliedInstruction<0x0A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src), 
+                                 "ASL\tA", [(set AccumulatorRegisterClass:$dst, (shl AccumulatorRegisterClass:$src, OnePattern))]>;
+
 def SUBsr : ADDSUBStackRelativePseudo<SUBsrNode>;
 
 def ADDi : ADDImmediatePseudo;
