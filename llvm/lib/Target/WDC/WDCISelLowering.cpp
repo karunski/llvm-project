@@ -75,9 +75,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   addRegisterClass(MVT::i16, &WDC::AccumulatorRegisterClassRegClass);
   addRegisterClass(MVT::i16, &WDC::IndexRegsRegClass);
 
-  // must, computeRegisterProperties - Once all of the register classes are
-  //  added, this allows us to compute derived properties we expose.
-  computeRegisterProperties(Subtarget.getRegisterInfo());
+  setBooleanContents(TargetLowering::ZeroOrOneBooleanContent);
 
   setOperationAction(ISD::ADD,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::AND,  MVT::i16, LegalizeAction::Custom);
@@ -87,6 +85,10 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::SHL,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SRA,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::XOR,  MVT::i16, LegalizeAction::Custom);
+
+  // must, computeRegisterProperties - Once all of the register classes are
+  //  added, this allows us to compute derived properties we expose.
+  computeRegisterProperties(Subtarget.getRegisterInfo());
 }
 
 std::unique_ptr<const WDCTargetLowering> WDCTargetLowering::create(const WDCTargetMachine &TM,
@@ -338,6 +340,16 @@ SDValue llvm::WDCTargetLowering::PerformDAGCombine(SDNode *nodeptr,
 MVT llvm::WDCTargetLowering::getScalarShiftAmountTy(const DataLayout &,
                                                     EVT evt) const {
   return MVT::i16;
+}
+
+EVT llvm::WDCTargetLowering::getSetCCResultType(const DataLayout &DL,
+                                                LLVMContext &Context,
+                                                EVT VT) const {
+  return MVT::i1;
+}
+
+bool llvm::WDCTargetLowering::convertSetCCLogicToBitwiseLogic(EVT) const {
+  return true;
 }
 
 llvm::WDCTargetLowering::WDCCallingConvention::WDCCallingConvention(

@@ -186,6 +186,10 @@ namespace llvm {
 
     MVT getScalarShiftAmountTy(const DataLayout &, EVT) const override;
 
+    EVT getSetCCResultType(const DataLayout &DL, LLVMContext &Context,
+                           EVT VT) const override;
+
+    bool convertSetCCLogicToBitwiseLogic(EVT vt) const override;
   };
 }
 
