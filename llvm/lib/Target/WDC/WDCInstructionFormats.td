@@ -112,6 +112,23 @@ class WDCLogicInstructionImmediate<
   let DisableEncoding = "$dst,$accumulator";
 }
 
+class WDCAddSubCarryInstructionImmediate<
+    bits<8>   op,
+    SDNode    opNode,
+    string    asmstr,
+    Operand   oprnd
+>
+: WDCImmediateInstruction<
+    op,
+    (outs AccumulatorRegisterClass:$dst),
+    (ins AccumulatorRegisterClass:$accumulator, oprnd:$constant),
+    !strconcat(asmstr, "\t$constant"),
+    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, UnsignedImm16Pattern:$constant))]
+  >
+{
+  let DisableEncoding = "$dst,$accumulator";
+}
+
 class WDCLoadInstructionImmediate<
     bits<8> op,
     string  asmstr,

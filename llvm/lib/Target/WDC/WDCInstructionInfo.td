@@ -35,8 +35,8 @@ def TSC    : WDCTransferInstruction<0x3B, "TSC", AccumulatorRegisterClass, Stack
 def TCS    : WDCTransferInstruction<0x1B, "TCS", StackRegisterClass, AccumulatorRegisterClass>;
 def CLC    : WDCTransferInstruction<0x18, "CLC", StatusReg, StatusReg>;
 def SEC    : WDCTransferInstruction<0x38, "SEC", StatusReg, StatusReg>;
-def ADCi   : WDCLogicInstructionImmediate<0x69, add, "ADC", UnsignedImm16Operand>;
-def SBCi   : WDCLogicInstructionImmediate<0xE9, sub, "SBC", UnsignedImm16Operand>;
+def ADCi   : WDCAddSubCarryInstructionImmediate<0x69, addc, "ADC", UnsignedImm16Operand>;
+def SBCi   : WDCAddSubCarryInstructionImmediate<0xE9, subc, "SBC", UnsignedImm16Operand>;
 
 let isReturn=1, isTerminator=1, isBarrier=1, hasCtrlDep=1 in {
   def RetRTL : WDCPseudoInst<(outs), (ins), "", [(WDCRetNode)]>;
