@@ -31,8 +31,8 @@ WDCMCAsmInfo::WDCMCAsmInfo(const Triple &TheTriple) {
   PrivateLabelPrefix = "$";
   CommentString = "#";
   ZeroDirective = "\t.space\t";
-  GPRel32Directive = "\t.gpword\t";
-  GPRel64Directive = "\t.gpdword\t";
+  // GPRel32Directive = "\t.gpword\t";
+  // GPRel64Directive = "\t.gpdword\t";
   WeakRefDirective = "\t.weak\t";
   UseAssignmentForEHBegin = true;
 
