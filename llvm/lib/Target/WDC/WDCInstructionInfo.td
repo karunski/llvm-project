@@ -69,6 +69,7 @@ def ORAsr  : InstructionLogicStackRelative<0x03, "ORA", ORAsrNode>;
 
 def PHB : WDCStackInstruction<0x0B, "PHB">;
 def PHP : WDCStackInstruction<0x08, "PHP">;
+def PLA : WDCStackInstruction<0x68, "PLA">;
 def PLB : WDCStackInstruction<0xAB, "PLB">;
 def PLP : WDCStackInstruction<0x28, "PLP">;
 
