@@ -14,19 +14,15 @@
 #ifndef LLVM_LIB_TARGET_WDC_MCTARGETDESC_WDCMCASMINFO_H
 #define LLVM_LIB_TARGET_WDC_MCTARGETDESC_WDCMCASMINFO_H
 
-#include "WDCConfig.h"
-
-#include "llvm/MC/MCAsmInfoELF.h"
-
 namespace llvm {
   class Triple;
-
-  class WDCMCAsmInfo : public MCAsmInfoELF {
-    void anchor() override;
-  public:
-    explicit WDCMCAsmInfo(const Triple &TheTriple);
-  };
-
+  class MCRegisterInfo;
+  class MCAsmInfo;
+  class MCTargetOptions;
+  
+  MCAsmInfo *createWDCMCAsmInfo(const MCRegisterInfo &MRI,
+    const Triple &TT,
+    const MCTargetOptions &Options);
 } // namespace llvm
 
 #endif

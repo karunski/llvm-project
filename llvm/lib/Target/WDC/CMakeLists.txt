@@ -14,7 +14,7 @@ tablegen(LLVM WDCGenCallingConv.inc -gen-callingconv)
 tablegen(LLVM WDCGenDAGISel.inc -gen-dag-isel)
 tablegen(LLVM WDCGenAsmWriter.inc -gen-asm-writer)
 tablegen(LLVM WDCGenCodeEmitter.inc -gen-emitter)
-
+tablegen(LLVM WDCGenMCCodeEmitter.inc -gen-emitter)
 
 # WDCCommonTableGen must be defined
 add_public_tablegen_target(WDCCommonTableGen)
@@ -30,7 +30,6 @@ add_llvm_target(WDCCodeGen
   WDCTargetObjectFile.cpp
   WDCISelDAGToDAG.cpp
   WDCMCInstLower.cpp
-  WDCMCAsmInfo.cpp
   WDCAsmPrinter.cpp
   WDCMachineFunction.cpp
 

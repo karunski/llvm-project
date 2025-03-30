@@ -17,9 +17,9 @@
 #include "WDCConfig.h"
 
 #include "WDCMCTargetDesc.h"
-#include "llvm/MC/MCExpr.h"
-#include "llvm/Support/DataTypes.h"
-#include "llvm/Support/ErrorHandling.h"
+#include <llvm/MC/MCExpr.h>
+#include <llvm/Support/DataTypes.h>
+#include <llvm/Support/ErrorHandling.h>
 
 namespace llvm {
 

@@ -12,12 +12,21 @@
 //===----------------------------------------------------------------------===//
 
 #include "WDCMCAsmInfo.h"
-
-#include "llvm/TargetParser/Triple.h"
+#include "WDCConfig.h"
+#include "WDCRegisterInfo.h"
+#include <llvm/TargetParser/Triple.h>
+#include <llvm/MC/MCAsmInfoELF.h>
+#include <llvm/MC/MCRegisterInfo.h>
 
 using namespace llvm;
 
-void WDCMCAsmInfo::anchor() { }
+namespace {
+  class WDCMCAsmInfo : public MCAsmInfoELF {
+    void anchor() override {}
+  public:
+    explicit WDCMCAsmInfo(const Triple &TheTriple);
+  };
+}
 
 WDCMCAsmInfo::WDCMCAsmInfo(const Triple &TheTriple) {
   IsLittleEndian = true; // the default of IsLittleEndian is true
@@ -39,4 +48,15 @@ WDCMCAsmInfo::WDCMCAsmInfo(const Triple &TheTriple) {
   SupportsDebugInformation = true;
   ExceptionsType = ExceptionHandling::DwarfCFI;
   DwarfRegNumForCFI = true;
+}
+
+MCAsmInfo *llvm::createWDCMCAsmInfo(const MCRegisterInfo &MRI, const Triple &TT,
+                                    const MCTargetOptions &Options) {
+  MCAsmInfo *MAI = new WDCMCAsmInfo{TT};
+
+  unsigned SP = MRI.getDwarfRegNum(WDC::S, true);
+  MCCFIInstruction Inst = MCCFIInstruction::createDefCfaRegister(nullptr, SP);
+  MAI->addInitialFrameState(Inst);
+
+  return MAI;
 }

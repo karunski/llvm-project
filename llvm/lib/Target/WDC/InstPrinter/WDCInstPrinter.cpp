@@ -28,6 +28,10 @@ using namespace llvm;
 #define PRINT_ALIAS_INSTR
 #include "WDCGenAsmWriter.inc"
 
+WDCInstPrinter::WDCInstPrinter(const MCAsmInfo &MAI, const MCInstrInfo &MII,
+  const MCRegisterInfo &MRI)
+: MCInstPrinter(MAI, MII, MRI) {}
+
 void WDCInstPrinter::printRegName(raw_ostream &OS, MCRegister RegNo) {
 //- getRegisterName(RegNo) defined in WDCGenAsmWriter.inc which indicate in 
 //   WDC.td.

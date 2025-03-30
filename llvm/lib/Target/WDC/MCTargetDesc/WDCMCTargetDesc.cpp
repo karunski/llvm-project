@@ -13,6 +13,8 @@
 
 #include "WDCMCTargetDesc.h"
 #include "WDCMCAsmInfo.h"
+#include "WDCMCCodeEmitter.h"
+#include "WDCMCAsmBackend.h"
 #include "InstPrinter/WDCInstPrinter.h"
 #include "llvm/MC/MachineLocation.h"
 #include "llvm/MC/MCELFStreamer.h"
@@ -40,18 +42,6 @@ using namespace llvm;
 
 namespace
 {
-
-MCAsmInfo *createWDCMCAsmInfo(const MCRegisterInfo &MRI,
-                                      const Triple &TT,
-                                      const MCTargetOptions &Options) {
-  MCAsmInfo *MAI = new WDCMCAsmInfo{TT};
-
-  unsigned SP = MRI.getDwarfRegNum(WDC::S, true);
-  MCCFIInstruction Inst = MCCFIInstruction::createDefCfaRegister(nullptr, SP);
-  MAI->addInitialFrameState(Inst);
-
-  return MAI;
-}
 
 MCInstrInfo *createWDCMCInstrInfo() {
   MCInstrInfo *X = new MCInstrInfo{};
@@ -117,6 +107,8 @@ static MCInstrAnalysis *createWDCMCInstrAnalysis(const MCInstrInfo *Info) {
 
 }
 
+
+
 //@2 {
 extern "C" void LLVMInitializeWDCTargetMC() {
   for (auto target : {&TheWDCTarget}) {
@@ -135,6 +127,23 @@ extern "C" void LLVMInitializeWDCTargetMC() {
     TargetRegistry::RegisterMCInstrAnalysis(*target, createWDCMCInstrAnalysis);
     // Register the MCInstPrinter.
     TargetRegistry::RegisterMCInstPrinter(*target, createWDCMCInstPrinter);
+
+    TargetRegistry::RegisterELFStreamer(
+        *target, [](const Triple &, MCContext &Context,
+                    std::unique_ptr<MCAsmBackend> &&MAB,
+                    std::unique_ptr<MCObjectWriter> &&OW,
+                    std::unique_ptr<MCCodeEmitter> &&Emitter) {
+          return createELFStreamer(Context, std::move(MAB), std::move(OW),
+                                   std::move(Emitter));
+        });
+
+    // Register the asm backend.
+    TargetRegistry::RegisterMCAsmBackend(TheWDCTarget, createWDCMCAsmBackend);
   }
+
+  
+
+  // Register the MC Code Emitter
+  TargetRegistry::RegisterMCCodeEmitter(TheWDCTarget, createWDCMCCodeEmitter);
 }
 //@2 }

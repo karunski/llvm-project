@@ -3,3 +3,4 @@
 #endif
 
 ELF_RELOC(R_WDC_NONE,                0)
+ELF_RELOC(R_WDC_LONG,                2)
