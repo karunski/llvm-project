@@ -179,8 +179,6 @@ namespace llvm {
 
     SDValue LowerStackRelativeOperand(SDValue node, SelectionDAG &DAG, WDCISD::NodeType wdcNodeType) const;
 
-    SDValue LowerSetCC(SDValue node, SelectionDAG &DAG) const;
-
     SDValue ExpandShift(SDValue node, SelectionDAG &DAG, unsigned targetOpcode) const;
 
     SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;

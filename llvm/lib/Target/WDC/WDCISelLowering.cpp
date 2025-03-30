@@ -89,8 +89,14 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::XOR,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SETCC, MVT::i16, LegalizeAction::Custom);
 
-  setCondCodeAction({ISD::SETNE}, MVT::i16, LegalizeAction::Expand); // Expands not-equal by negating a seteq.
-  setCondCodeAction({ISD::SETLT}, MVT::i16, LegalizeAction::Custom);
+  // Only SETEQ and SETGE have direct corresponding results after a CMP instruction (Z, and C, respectively)
+  // The rest of the operations can be implemented in terms of these two comparisons:
+  // Expands ( a != b ) -> !(a == b), 
+  //         ( a < b  ) -> !(a >= b),
+  //         ( a > b  ) ->  (b <  a)  -> !(b >= a)
+  //         ( a <= b ) ->  (b >= a)
+  setCondCodeAction({ISD::SETNE, ISD::SETLE, ISD::SETGT, ISD::SETLT}, MVT::i16, LegalizeAction::Expand); 
+  
 
   // must, computeRegisterProperties - Once all of the register classes are
   //  added, this allows us to compute derived properties we expose.
@@ -298,23 +304,6 @@ SDValue llvm::WDCTargetLowering::LowerStackRelativeOperand(SDValue node, Selecti
   return {};
 }
 
-SDValue llvm::WDCTargetLowering::LowerSetCC(SDValue node,
-                                            SelectionDAG &DAG) const {
-  const auto debugLoc = SDLoc{node};
-  const auto valueType = node.getValueType();
-  const auto lhs          = node.getOperand(0);
-  const auto rhs          = node.getOperand(1);
-  const auto condCodeNode = node.getOperand(2);
-
-  if (const auto condCode = cast<CondCodeSDNode>(condCodeNode)->get(); condCode == ISD::SETLT) {
-    const auto invertedSetcc = DAG.getNode(ISD::SETCC, debugLoc, valueType, lhs, rhs, DAG.getCondCode(ISD::SETGE));
-    const auto immOne        = DAG.getConstant(1, debugLoc, valueType);
-    const auto invert        = DAG.getNode(ISD::XOR, debugLoc, valueType, {invertedSetcc, immOne});
-    return invert;
-  }
-  return LowerStackRelativeOperand(node, DAG, WDCISD::SETCCsr);
-}
-
 SDValue llvm::WDCTargetLowering::ExpandShift(SDValue node, SelectionDAG & DAG, unsigned targetOpcode) const {  
   if (const auto shiftAmtNode = dyn_cast<ConstantSDNode>(node.getOperand(1).getNode()); shiftAmtNode) {
     const auto debugLoc = SDLoc{node};
@@ -361,7 +350,7 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
     return LowerStackRelativeOperand(node, DAG, WDCISD::EORsr);
   }
   else if (opcode == ISD::SETCC) {
-    return LowerSetCC(node, DAG);//LowerStackRelativeOperand(node, DAG, WDCISD::SETCCsr);
+    return LowerStackRelativeOperand(node, DAG, WDCISD::SETCCsr);
   }
 
   return TargetLowering::LowerOperation(node, DAG);
