@@ -25,16 +25,20 @@ class WDCFrameLowering : public TargetFrameLowering {
 protected:
   const WDCSubtarget & Subtarget;
 
-public:
-  explicit WDCFrameLowering(const WDCSubtarget &sti, unsigned Alignment)
-      : TargetFrameLowering(StackGrowsDown, Align(Alignment), 0,
-                            Align(Alignment)),
-        Subtarget{sti} {}
+private:
+  explicit WDCFrameLowering(const WDCSubtarget &sti, unsigned Alignment);
 
-  static const WDCFrameLowering *create(const WDCSubtarget &ST);
+public:
+  static std::unique_ptr<const WDCFrameLowering> create(const WDCSubtarget &ST);
 
   bool hasFPImpl(const MachineFunction &MF) const override;
 
+  /// emitProlog/emitEpilog - These methods insert prolog and epilog code into
+  /// the function.
+  void emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) const override;
+  void emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) const override;
+  void determineCalleeSaves(MachineFunction &MF, BitVector &SavedRegs,
+                            RegScavenger *RS) const override;
 };
 
 /// Create WDCFrameLowering objects.

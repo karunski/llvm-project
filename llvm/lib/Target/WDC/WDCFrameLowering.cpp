@@ -16,6 +16,7 @@
 #include "WDCInstructionInfo.h"
 #include "WDCMachineFunction.h"
 #include "WDCSubtarget.h"
+#include "WDCSEInstructionInfo.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
@@ -82,8 +83,13 @@ using namespace llvm;
 //
 //===----------------------------------------------------------------------===//
 
-const WDCFrameLowering *WDCFrameLowering::create(const WDCSubtarget &ST) {
-  return llvm::createWDCSEFrameLowering(ST);
+WDCFrameLowering::WDCFrameLowering(const WDCSubtarget &sti, unsigned Alignment)
+    : TargetFrameLowering(StackGrowsDown, Align(Alignment), 0,
+                          Align(Alignment)),
+      Subtarget{sti} {}
+
+std::unique_ptr<const WDCFrameLowering> WDCFrameLowering::create(const WDCSubtarget &ST) {
+  return std::unique_ptr<const WDCFrameLowering>{new WDCFrameLowering{ST, ST.stackAlignment()}};
 }
 
 // hasFP - Return true if the specified function should have a dedicated frame
@@ -97,4 +103,101 @@ bool WDCFrameLowering::hasFPImpl(const MachineFunction &MF) const {
   return MF.getTarget().Options.DisableFramePointerElim(MF) ||
       MFI.hasVarSizedObjects() || MFI.isFrameAddressTaken() ||
       TargetRegisterInfo->hasStackRealignment(MF);
+}
+
+void WDCFrameLowering::emitPrologue(MachineFunction &machineFunction,
+                                      MachineBasicBlock &basicBlock) const {
+  auto & frameInfo    = machineFunction.getFrameInfo();
+  // const auto * wdcFunctionInfo = machineFunction.getInfo<WDCFunctionInfo>();
+
+  const auto &instructionInfo =
+      *static_cast<const WDCSEInstrInfo *>(Subtarget.getInstrInfo());
+  // const auto &RegInfo =
+  //     *static_cast<const WDCRegisterInfo *>(Subtarget.getRegisterInfo());
+
+  auto basicBlockIter = basicBlock.begin();
+  const auto debugLoc = basicBlockIter != basicBlock.end() ? basicBlockIter->getDebugLoc() : DebugLoc{};
+  // const auto ABI = Subtarget.getABI();
+  // const TargetRegisterClass *RC = &WDC::GPROutRegClass;
+
+  // First, compute final stack size.
+  uint64_t StackSize = frameInfo.getStackSize();
+
+  // No need to allocate space on the stack.
+  if (StackSize == 0 && !frameInfo.adjustsStack()) return;
+
+  // MachineModuleInfo &MMI = machineFunction.getMMI();
+  // const MCRegisterInfo *MRI = MMI.getContext().getRegisterInfo();
+
+  // Adjust stack.
+  instructionInfo.adjustStackPtr(WDC::S, -StackSize, basicBlock, basicBlockIter);
+
+  // emit ".cfi_def_cfa_offset StackSize"
+  // unsigned CFIIndex = 
+  //     machineFunction.addFrameInst(
+  //     MCCFIInstruction::cfiDefCfaOffset(nullptr, StackSize));
+  // BuildMI(basicBlock, basicBlockIter, debugLoc, instructionInfo.get(TargetOpcode::CFI_INSTRUCTION))
+  //     .addCFIIndex(CFIIndex);
+
+  // const auto &calleeSavedInfo = frameInfo.getCalleeSavedInfo();
+
+  // if (!calleeSavedInfo.empty()) {
+  //   // Find the instruction past the last instruction that saves a callee-saved
+  //   // register to the stack.
+  //   for (unsigned i = 0; i < calleeSavedInfo.size(); ++i) {
+  //     ++basicBlockIter;
+  //   }
+
+  //   // Iterate over list of callee-saved registers and emit .cfi_offset
+  //   // directives.
+  //   for (std::vector<CalleeSavedInfo>::const_iterator I = calleeSavedInfo.begin(),
+  //          E = calleeSavedInfo.end(); I != E; ++I) {
+  //     const auto Offset = frameInfo.getObjectOffset(I->getFrameIdx());
+  //     const auto Reg = I->getReg();
+  //     {
+  //       // Reg is in CPURegs.
+  //       unsigned CFIIndex = machineFunction.addFrameInst(MCCFIInstruction::createOffset(
+  //           nullptr, RegInfo.getDwarfRegNum(Reg, true), Offset));
+  //       BuildMI(basicBlock, basicBlockIter, debugLoc, instructionInfo.get(TargetOpcode::CFI_INSTRUCTION))
+  //           .addCFIIndex(CFIIndex);
+  //     }
+  //   }
+  // }
+}
+
+//@emitEpilogue {
+void WDCFrameLowering::emitEpilogue(MachineFunction &machineFunc,
+                                      MachineBasicBlock &machineBasicBlock) const {
+  auto basicBlockIter    = machineBasicBlock.getFirstTerminator();
+  auto &machineFrameInfo = machineFunc.getFrameInfo();
+  // auto * wdcFunctionInfo = machineFunc.getInfo<WDCFunctionInfo>();
+
+  const auto &targetInstrInfo =
+      *static_cast<const WDCSEInstrInfo *>(Subtarget.getInstrInfo());
+  // const Cpu0RegisterInfo &RegInfo =
+  //     *static_cast<const Cpu0RegisterInfo *>(STI.getRegisterInfo());
+
+  // DebugLoc DL = basicBlockIter != machineBasicBlock.end() ? basicBlockIter->getDebugLoc() : DebugLoc();
+  // Cpu0ABIInfo ABI = STI.getABI();
+  // unsigned SP = Cpu0::SP;
+
+  // Get the number of bytes from FrameInfo
+  const auto stackSize = machineFrameInfo.getStackSize();
+
+  if (!stackSize)
+    return;
+
+  // Adjust stack.
+  targetInstrInfo.adjustStackPtr(WDC::S, stackSize, machineBasicBlock, basicBlockIter);
+}
+
+void WDCFrameLowering::determineCalleeSaves(MachineFunction &MF,
+                                                    BitVector &SavedRegs,
+                                                    RegScavenger *RS) const {
+  TargetFrameLowering::determineCalleeSaves(MF, SavedRegs, RS);
+  // const auto  *Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
+
+  // if (MF.getFrameInfo().hasCalls()) {
+  //   setAliasRegs(MF, SavedRegs, Cpu0::LR);
+  // }
 }

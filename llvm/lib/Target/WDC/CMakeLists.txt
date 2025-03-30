@@ -33,7 +33,6 @@ add_llvm_target(WDCCodeGen
   WDCMCInstLower.cpp
   WDCSEInstructionInfo.cpp
   WDCSERegisterInfo.cpp
-  WDCSEFrameLowering.cpp
   WDCSEISelLowering.cpp
   WDCMCAsmInfo.cpp
   WDCAsmPrinter.cpp
