@@ -20,7 +20,7 @@ include "WDCInstructionFormats.td"
 def WDCRetNode : SDNode<"WDCISD::Ret", SDTNone,
                      [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 
-def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", SignedImm16Operand>;
+def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
 def LDAi   : WDCLoadInstructionImmediate<0xA9, ld, "LDA", SignedImm16Operand>;
 
 def mem_stack : Operand<iPTR> {
@@ -34,7 +34,9 @@ def RTL    : WDCReturnInstruction<0x6b, "RTL">;
 def TSC    : WDCTransferInstruction<0x3B, "TSC", AccumulatorRegisterClass, StackRegisterClass>;
 def TCS    : WDCTransferInstruction<0x1B, "TCS", StackRegisterClass, AccumulatorRegisterClass>;
 def CLC    : WDCTransferInstruction<0x18, "CLC", StatusReg, StatusReg>;
-def ADCi   : WDCLogicInstructionImmediate<0x69, add, "ADC", SignedImm16Operand>;
+def SEC    : WDCTransferInstruction<0x38, "SEC", StatusReg, StatusReg>;
+def ADCi   : WDCLogicInstructionImmediate<0x69, add, "ADC", UnsignedImm16Operand>;
+def SBCi   : WDCLogicInstructionImmediate<0xE9, sub, "SBC", UnsignedImm16Operand>;
 
 let isReturn=1, isTerminator=1, isBarrier=1, hasCtrlDep=1 in {
   def RetRTL : WDCPseudoInst<(outs), (ins), "", [(WDCRetNode)]>;

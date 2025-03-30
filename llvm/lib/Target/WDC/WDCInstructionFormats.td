@@ -81,12 +81,17 @@ class WDCStackRelativeInstruction<bits<8> opcode, dag outs, dag ins, string asms
 def SignedImm16Operand      : Operand<i16> {
   let DecoderMethod= "DecodeSimm16";
 }
+def UnsignedImm16Operand : Operand<i16> {
+  let DecoderMethod="DecodeUimm16";
+}
+
 def SignedImm8Operand : Operand<i8> {
   let DecoderMethod="DecodeSimm8";
 }
 
 // Pattern 
 def SignedImm16Pattern  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
+def UnsignedImm16Pattern : PatLeaf<(imm), [{ return isUInt<16>(N->getZExtValue()); }]>;
 def SignedImm8Pattern : PatLeaf<(imm), [{ return isInt<8>(N->getSExtValue()); }]>;
 def SignedFrameIndexPattern : PatLeaf<(frameindex)>;
 
@@ -101,7 +106,7 @@ class WDCLogicInstructionImmediate<
     (outs AccumulatorRegisterClass:$dst),
     (ins AccumulatorRegisterClass:$accumulator, oprnd:$constant),
     !strconcat(asmstr, "\t$constant"),
-    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, SignedImm16Pattern:$constant))]
+    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, UnsignedImm16Pattern:$constant))]
   >
 {
   let DisableEncoding = "$dst,$accumulator";

@@ -56,7 +56,7 @@ void WDCInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
   }
 
   if (Op.isImm()) {
-    O << '#' << Op.getImm();
+    O << '#' << format_hex_no_prefix(Op.getImm(), 4);
     return;
   }
 
