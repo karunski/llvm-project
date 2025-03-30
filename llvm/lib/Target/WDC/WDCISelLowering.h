@@ -66,6 +66,7 @@ namespace llvm {
 
       ADDsr,
       ADDi,
+      ANDsr,
       SUBsr,
     };
   }
@@ -173,7 +174,9 @@ namespace llvm {
     SDValue LowerOperation(SDValue node, SelectionDAG &DAG) const override;
     SDValue LowerAdd(SDValue node, SelectionDAG &DAG) const;
 
-    SDValue LowerSub(SDValue node, SelectionDAG &DAG) const;
+    SDValue LowerStackRelativeOperand(SDValue node, SelectionDAG &DAG, WDCISD::NodeType wdcNodeType) const;
+
+    SDValue LowerAnd(SDValue node, SelectionDAG &DAG) const;
 
     SDValue ExpandShift(SDValue node, SelectionDAG &DAG, unsigned targetOpcode) const;
 

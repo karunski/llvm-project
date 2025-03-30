@@ -40,6 +40,13 @@ let isAdd = 1 in {
   def ADDsr : ADDSUBStackRelativePseudo<ADDsrNode>;
 }
 
+let Constraints = "$dst = $src" in {
+def ANDsr : WDCStackRelativeInstruction<0x23, (outs AccumulatorRegisterClass:$dst), 
+                                        (ins AccumulatorRegisterClass:$src, StackOffsetOperand:$spoffset), 
+                                        "AND\t$spoffset", 
+                                        [(set AccumulatorRegisterClass:$dst, (ANDsrNode AccumulatorRegisterClass:$src, frameIndexPattern:$spoffset))]>;
+}
+
 def ASL : WDCImpliedInstruction<0x0A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src), 
                                  "ASL\tA", [(set AccumulatorRegisterClass:$dst, (shl AccumulatorRegisterClass:$src, OnePattern))]>;
 
