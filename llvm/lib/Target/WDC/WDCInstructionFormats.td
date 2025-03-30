@@ -26,6 +26,10 @@ def WDCAddressModeImmediate : AddressMode<1>;
 def WDCAddressModeImplied : AddressMode<2>;
 // def WDCAddressModeStackRelative : AddressMode<3>;
 
+def UnsignedImm8Operand : Operand<i8> {
+  let PrintMethod = "printUnsignedImm8";
+}
+
 // Generic Cpu0 Format
 class WDCInst<dag outs, dag ins, string asmstr, list<dag> pattern> : Instruction
 {
@@ -59,6 +63,16 @@ class WDCImmediateInstruction<bits<8> opcode, dag outs, dag ins, string asmstr, 
   let m_addrMode = WDCAddressModeImmediate;
 }
 
+class InstructionImm8<bits<8> opcode, string asmstr> 
+: WDCInst<(outs), (ins UnsignedImm8Operand:$const), !strconcat(asmstr, "\t$const"), []> {
+  field bits<16> Inst;
+  bits<8> const;
+  let Opcode = opcode;
+  let Size = 2;
+  let Inst{0-7} = Opcode;
+  let Inst{8-15} = const;
+}
+
 class WDCImpliedInstruction<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
 : WDCInst<outs, ins, asmstr, pattern>
 {
@@ -85,7 +99,7 @@ def SignedImm16Operand      : Operand<i16> {
 }
 def UnsignedImm16Operand : Operand<i16> {
   let DecoderMethod="DecodeUimm16";
-  let PrintMethod = "printUnsignedImm";
+  let PrintMethod = "printUnsignedImm16";
 }
 
 def SignedImm8Operand : Operand<i8> {
@@ -120,6 +134,8 @@ class WDCLogicInstructionImmediate<
   >
 {
   let DisableEncoding = "$dst,$accumulator";
+  let Constraints = "$dst = $accumulator";
+  let isCommutable = true;
 }
 
 class WDCAddSubCarryInstructionImmediate<

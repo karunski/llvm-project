@@ -95,6 +95,12 @@ private:
                  const unsigned realOpcode) const;
   void expandSRA(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
   void expandROTL(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
+
+  void copyPhysReg(MachineBasicBlock &MBB,
+    MachineBasicBlock::iterator MI, const DebugLoc &DL,
+    Register DestReg, Register SrcReg, bool KillSrc,
+    bool RenamableDest = false,
+    bool RenamableSrc = false) const override;
 };
 }
 

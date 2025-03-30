@@ -60,12 +60,22 @@ void WDCInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
 }
 
 void WDCInstPrinter::printUnsignedImm(const MCInst *MI, int opNum,
-                                       raw_ostream &O) {
+                                       raw_ostream &O, unsigned immBits) {
   const MCOperand &MO = MI->getOperand(opNum);
-  if (MO.isImm())
-    O << "#$" << format_hex_no_prefix(static_cast<uint16_t>(MO.getImm()), 4);
-  else
+  if (MO.isImm()) {
+    O << "#$" << format_hex_no_prefix(static_cast<uint16_t>(MO.getImm()), immBits / 4 );
+  }
+  else {
     printOperand(MI, opNum, O);
+  }
+}
+
+void WDCInstPrinter::printUnsignedImm8(const MCInst * MI, int opNum, raw_ostream &O) {
+  printUnsignedImm(MI, opNum, O, 8);
+}
+
+void WDCInstPrinter::printUnsignedImm16(const MCInst * MI, int opNum, raw_ostream &O) {
+  printUnsignedImm(MI, opNum, O, 16);
 }
 
 void llvm::WDCInstPrinter::printStackOffset(const MCInst *MI, int opNum,

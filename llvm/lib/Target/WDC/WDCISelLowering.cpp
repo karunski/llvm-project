@@ -74,6 +74,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   // Set up the register classes
   addRegisterClass(MVT::i16, &WDC::AccumulatorRegisterClassRegClass);
   addRegisterClass(MVT::i16, &WDC::IndexRegsRegClass);
+  addRegisterClass(MVT::i8, &WDC::StatusRegRegClass);
 
   setBooleanContents(TargetLowering::ZeroOrOneBooleanContent);
 
@@ -345,7 +346,7 @@ MVT llvm::WDCTargetLowering::getScalarShiftAmountTy(const DataLayout &,
 EVT llvm::WDCTargetLowering::getSetCCResultType(const DataLayout &DL,
                                                 LLVMContext &Context,
                                                 EVT VT) const {
-  return MVT::i1;
+  return MVT::i16;
 }
 
 bool llvm::WDCTargetLowering::convertSetCCLogicToBitwiseLogic(EVT) const {

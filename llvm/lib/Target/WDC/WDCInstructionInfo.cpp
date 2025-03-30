@@ -210,3 +210,25 @@ void llvm::WDCInstrInfo::expandROTL(MachineBasicBlock &MBB, MachineBasicBlock::i
   BuildMI(MBB, I, I->getDebugLoc(), get(WDC::ASL));
   BuildMI(MBB, I, I->getDebugLoc(), get(WDC::ADCi)).addReg(WDC::A).addReg(WDC::A).addImm(0);
 }
+
+void llvm::WDCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
+                                     MachineBasicBlock::iterator MI,
+                                     const DebugLoc &DL, Register DestReg,
+                                     Register SrcReg, bool KillSrc,
+                                     bool RenamableDest,
+                                     bool RenamableSrc) const {
+  if (SrcReg == WDC::P) {
+    // push 8-bit status register on to the stack
+    BuildMI(MBB, MI, MI->getDebugLoc(), get(WDC::PHP));
+    if (DestReg == WDC::A) {
+      // Set the Accumulator to 8 bits; pull the byte off the stack, and reset the accumulator back to 16 bit.
+      BuildMI(MBB, MI, MI->getDebugLoc(), get(WDC::SEP)).addImm(0b00100000);
+      BuildMI(MBB, MI, MI->getDebugLoc(), get(WDC::PLP));
+      BuildMI(MBB, MI, MI->getDebugLoc(), get(WDC::REP)).addImm(0b00100000);
+      return;
+    }
+  }
+
+  llvm_unreachable("I didn't implement the rightTargetInstrInfo::copyPhysReg!");
+
+}

@@ -48,11 +48,14 @@ public:
 
 private:
   void printOperand(const MCInst *MI, unsigned OpNo, raw_ostream &O);
+  void printUnsignedImm(const MCInst *MI, int opNum, raw_ostream &O,
+                        unsigned immSize);
   void printOperand(const MCInst *MI, uint64_t /*Address*/, unsigned OpNum,
                     raw_ostream &O) {
     printOperand(MI, OpNum, O);
   }
-  void printUnsignedImm(const MCInst *MI, int opNum, raw_ostream &O);
+  void printUnsignedImm16(const MCInst *MI, int opNum, raw_ostream &O);
+  void printUnsignedImm8(const MCInst * MI, int opNum, raw_ostream &O);
   void printMemOperand(const MCInst *MI, int opNum, raw_ostream &O);
   void printStackOffset(const MCInst * MI, int opNum, raw_ostream&os);
 
