@@ -205,7 +205,7 @@ void llvm::WDCInstrInfo::expandSUB(MachineBasicBlock &MBB, MachineBasicBlock::it
 }
 
 void llvm::WDCInstrInfo::expandSRA(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const {
-  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::CMPi)).addReg(WDC::A).addImm(0x8000);
+  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::CMPi)).addReg(WDC::P).addReg(WDC::A).addImm(0x8000);
   BuildMI(MBB, I, I->getDebugLoc(), get(WDC::ROR));
 }
 

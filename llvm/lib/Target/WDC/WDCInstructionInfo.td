@@ -28,8 +28,6 @@ def TCS    : WDCTransferInstruction<0x1B, "TCS">;
 def TCD    : WDCTransferInstruction<0x5D, "TCD">;
 
 def CLC    : WDCStatusControlInstruction<0x18, "CLC", CarryRegisterClass, []>;
-//def CMPi   : WDCImmediateInstruction<0xc9, (outs), (ins AccumulatorRegisterClass:$src, UnsignedImm16Operand:$constant), 
-//                                    "CMP\t$constant", []>;
 
 def SEC    : WDCStatusControlInstruction<0x38, "SEC", CarryRegisterClass, []>;
 
