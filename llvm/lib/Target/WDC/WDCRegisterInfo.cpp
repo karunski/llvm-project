@@ -37,19 +37,16 @@ WDCRegisterInfo::WDCRegisterInfo(const WDCSubtarget &ST)
 // Callee Saved Registers methods
 //===----------------------------------------------------------------------===//
 /// WDC Callee Saved Registers
-// In WDCCallConv.td,
-// def CSR_O32 : CalleeSavedRegs<(add LR, FP,
-//                                   (sequence "S%u", 2, 0))>;
-// llc create CSR_O32_SaveList and CSR_O32_RegMask from above defined.
+// returns values generated from CalleeSavedRegsWDC in WDCCallConv.td
 const MCPhysReg *
 WDCRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
-  return CSR_O32_SaveList;
+  return CalleeSavedRegsWDC_SaveList;
 }
 
 const uint32_t *
 WDCRegisterInfo::getCallPreservedMask(const MachineFunction &MF,
                                        CallingConv::ID) const {
-  return CSR_O32_RegMask; 
+  return CalleeSavedRegsWDC_RegMask; 
 }
 
 // pure virtual method

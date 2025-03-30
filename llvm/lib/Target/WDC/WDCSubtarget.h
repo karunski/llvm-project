@@ -170,7 +170,7 @@ public:
 //     return hasCpu032II();
 //   }
   
-  unsigned stackAlignment() const { return 8; }
+  unsigned stackAlignment() const { return 2; }
 
   WDCSubtarget &initializeSubtargetDependencies(StringRef CPU, StringRef FS,
                                                  const TargetMachine &TM);

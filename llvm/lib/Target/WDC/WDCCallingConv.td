@@ -13,10 +13,10 @@
 class CCIfSubtarget<string F, CCAction A>:
   CCIf<!strconcat("State.getTarget().getSubtarget<WDCSubtarget>().", F), A>;
 
-def CSR_O32 : CalleeSavedRegs<(add X, Y)>;
-                                //    (sequence "S%u", 1, 0))>;
+def CalleeSavedRegsWDC : CalleeSavedRegs<(add P, X, Y)>;
 
 def RetCC_WDC : CallingConv<[
   // Return 
-  CCIfType<[i16], CCAssignToReg<[A]>>
+  CCIfType<[i8], CCPromoteToType<i16>>,
+  CCAssignToStack<2, 2>
 ]>;

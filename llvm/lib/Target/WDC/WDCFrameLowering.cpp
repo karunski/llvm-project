@@ -84,8 +84,8 @@ using namespace llvm;
 //===----------------------------------------------------------------------===//
 
 WDCFrameLowering::WDCFrameLowering(const WDCSubtarget &sti, unsigned Alignment)
-    : TargetFrameLowering(StackGrowsDown, Align(Alignment), 0,
-                          Align(Alignment)),
+    : TargetFrameLowering(StackGrowsDown, Align{Alignment}, 0,
+                          Align{Alignment}),
       Subtarget{sti} {}
 
 std::unique_ptr<const WDCFrameLowering> WDCFrameLowering::create(const WDCSubtarget &ST) {

@@ -144,6 +144,7 @@ WDCTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
   // the return value to a location
   SmallVector<CCValAssign, 16> RVLocs;
   MachineFunction &MF = DAG.getMachineFunction();
+  auto & frameInfo = MF.getFrameInfo();
 
   // CCState - Info about the registers and stack slot.
   CCState CCInfo{CallConv, IsVarArg, MF, RVLocs, *DAG.getContext()};
@@ -156,20 +157,39 @@ WDCTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
   SDValue Flag;
   SmallVector<SDValue, 4> RetOps{1, Chain};
 
-  // Copy the result values into the output registers.
+  // Copy the result values into the output stack
   for (size_t i = 0; i != RVLocs.size(); ++i) {
     SDValue Val = OutVals[i];
     CCValAssign &VA = RVLocs[i];
-    assert(VA.isRegLoc() && "Can only return in registers!");
+    // if (VA.isRegLoc()) {
+    //   if (RVLocs[i].getValVT() != RVLocs[i].getLocVT())
+    //     Val = DAG.getNode(ISD::BITCAST, DL, RVLocs[i].getLocVT(), Val);
 
-    if (RVLocs[i].getValVT() != RVLocs[i].getLocVT())
-      Val = DAG.getNode(ISD::BITCAST, DL, RVLocs[i].getLocVT(), Val);
+    //   Chain = DAG.getCopyToReg(Chain, DL, VA.getLocReg(), Val, Flag);
 
-    Chain = DAG.getCopyToReg(Chain, DL, VA.getLocReg(), Val, Flag);
+    //   // Guarantee that all emitted copies are stuck together with flags.
+    //   Flag = Chain.getValue(1);
+    //   RetOps.push_back(DAG.getRegister(VA.getLocReg(), VA.getLocVT()));
+    // }
+    // else {
+      assert(VA.isMemLoc() && "return value should be is memory location");
+      if (IsVarArg) {
+        report_fatal_error("Can't return value from vararg function in memory");
+      }
 
-    // Guarantee that all emitted copies are stuck together with flags.
-    Flag = Chain.getValue(1);
-    RetOps.push_back(DAG.getRegister(VA.getLocReg(), VA.getLocVT()));
+      const auto offset = VA.getLocMemOffset();
+      const auto objSize = VA.getLocVT().getStoreSize();
+      // Create the frame index object for the memory location.
+      const auto frameIndex = frameInfo.CreateFixedObject(objSize, offset, false);
+
+      // Create a SelectionDAG node corresponding to a store
+      // to this memory location.
+      SDValue frameIndexNode = DAG.getFrameIndex(frameIndex, MVT::i16);
+      // MemOpChains.push_back(DAG.getStore(
+      //     Chain, dl, OutVals[i], FIN,
+      //     MachinePointerInfo::getFixedStack(DAG.getMachineFunction(), FI)));
+      Chain = DAG.getStore(Chain, DL, Val, frameIndexNode, MachinePointerInfo::getStack(MF, frameIndex));
+    // }
   }
 
 //@Ordinary struct type: 2 {
