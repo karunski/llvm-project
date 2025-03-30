@@ -59,7 +59,8 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::ADDsr:             return "WDCISD::ADDsr";
   case WDCISD::ANDsr:             return "WDCISD::ANDsr";
   case WDCISD::SUBsr:             return "WDCISD::SUBsr";
-  default:                         return NULL;
+  case WDCISD::ORAsr:             return "WDCISD::ORAsr";
+  default:                        return NULL;
   }
 }
 //@3_1 1 }
@@ -77,12 +78,13 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   //  added, this allows us to compute derived properties we expose.
   computeRegisterProperties(Subtarget.getRegisterInfo());
 
-  setOperationAction(ISD::ADD, MVT::i16, LegalizeAction::Custom);
-  setOperationAction(ISD::AND, MVT::i16, LegalizeAction::Custom);
-  setOperationAction(ISD::SUB, MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::ADD,  MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::AND,  MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::SUB,  MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::OR,   MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::ROTL, MVT::i16, LegalizeAction::Custom);
-  setOperationAction(ISD::SHL, MVT::i16, LegalizeAction::Custom);
-  setOperationAction(ISD::SRA, MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::SHL,  MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::SRA,  MVT::i16, LegalizeAction::Custom);
 }
 
 std::unique_ptr<const WDCTargetLowering> WDCTargetLowering::create(const WDCTargetMachine &TM,
@@ -267,7 +269,7 @@ SDValue llvm::WDCTargetLowering::LowerStackRelativeOperand(SDValue node, Selecti
     const auto loadBasePtrValue = loadNode->getBasePtr();
     if (const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(loadBasePtrValue.getNode()); frameIndexNode) {
       return DAG.getNode(
-          WDCISD::SUBsr, debugLoc, {node.getValueType()},
+          wdcNode, debugLoc, {node.getValueType()},
           {loadNode->getChain(), node.getOperand(0), loadBasePtrValue});
     }
   }
@@ -304,15 +306,19 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
   else if (opcode == ISD::AND) {
     return LowerStackRelativeOperand(node, DAG, WDCISD::ANDsr); 
   }
+  else if (opcode == ISD::OR) {
+    return LowerStackRelativeOperand(node, DAG, WDCISD::ORAsr);
+  }
+  else if (opcode == ISD::ROTL) {
+    return ExpandShift(node, DAG, WDC::ROTL);
+  }
   else if (opcode == ISD::SHL) {
     return ExpandShift(node, DAG, WDC::ASL);
   }
   else if (opcode == ISD::SRA) {
     return ExpandShift(node, DAG, WDC::SRA);
   }
-  else if (opcode == ISD::ROTL) {
-    return ExpandShift(node, DAG, WDC::ROTL);
-  }
+
 
   return TargetLowering::LowerOperation(node, DAG);
 }

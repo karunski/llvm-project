@@ -18,7 +18,6 @@ include "WDCInstructionFormats.td"
 include "WDCSDNodes.td"
 include "WDCPseudoInstructions.td"
 
-def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
 def LDAi   : WDCLoadInstructionImmediate<0xA9, "LDA", UnsignedImm16Operand>;
 def LDAsr  : WDCLoadInstructionStackRelative<0xA3, "LDA">;
 def STAsr  : WDCStoreInstructionStackRelative<0x83, "STA">;
@@ -38,6 +37,7 @@ let isAdd = 1 in {
   def ADCi  : WDCAddSubCarryInstructionImmediate<0x69, adde, "ADC", UnsignedImm16Operand>;
   def ADCsr : WDCAddSubCarryInstructionStackRelative<0x63, addc, "ADC">;
   def ADDsr : ADDSUBStackRelativePseudo<ADDsrNode>;
+  def ADDi : ADDImmediatePseudo;
 }
 
 let Constraints = "$dst = $src" in {
@@ -52,10 +52,14 @@ def ASL : WDCImpliedInstruction<0x0A, (outs AccumulatorRegisterClass:$dst), (ins
 
 def SUBsr : ADDSUBStackRelativePseudo<SUBsrNode>;
 
-def ADDi : ADDImmediatePseudo;
-
 def SBCi   : WDCAddSubCarryInstructionImmediate<0xE9, subc, "SBC", UnsignedImm16Operand>;
 def SBCsr  : WDCAddSubCarryInstructionStackRelative<0xE3,subc, "SBC">;
+
+def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
+def ORAsr  : WDCStackRelativeInstruction<0x03,  (outs AccumulatorRegisterClass:$dst),
+                                         (ins AccumulatorRegisterClass:$src, StackOffsetOperand:$spoffset),
+                                         "ORA\t$spoffset",
+                                         [(set AccumulatorRegisterClass:$dst, (ORAsrNode AccumulatorRegisterClass:$src, frameIndexPattern:$spoffset))]>;
 
 def PHB : WDCStackInstruction<0x0B, "PHB">;
 def PLB : WDCStackInstruction<0xAB, "PLB">;
