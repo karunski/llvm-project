@@ -43,7 +43,7 @@ class WDCInst<dag outs, dag ins, string asmstr, list<dag> pattern, AddressMode a
   let Itinerary   = NoItinerary;
 
   let DecoderNamespace = "WDC";
-
+  let hasNoSchedulingInfo = true;
 }
 
 class WDCLogicInstruction<
@@ -55,23 +55,34 @@ class WDCLogicInstruction<
     AddressMode   addrMode>
 : WDCInst<outs, ins, asmstr, pattern, addrMode>
 {
-  bits<1> accumulator;
   let Opcode = op;
 }
+
+// Signed 16 bit immediate
+def SignedImm16Operand      : Operand<i16> {
+  let DecoderMethod= "DecodeSimm16";
+}
+// Pattern 
+def SignedImm16Pattern  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
 
 class WDCLogicInstructionImmmediate<
     bits<8>   op,
     SDNode    opNode,
-    string    asmstr
+    string    asmstr,
+    Operand   oprnd
 >
 : WDCLogicInstruction<
     op,
     (outs AccumulatorRegisterClass:$dst),
-    (ins AccumulatorRegisterClass:$accumulator, i16imm:$constant),
+    (ins AccumulatorRegisterClass:$accumulator, oprnd:$constant),
     !strconcat(asmstr, "\t$constant"),
-    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, i16imm:$constant))],
+    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, SignedImm16Pattern:$constant))],
     WDCImmediate
   >
 {
+  field bits<24> Inst;
+  let Size = 3;
+  let Inst{23-16} = op;
+  let DisableEncoding = "$dst,$accumulator";
 }
 

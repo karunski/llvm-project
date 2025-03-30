@@ -22,7 +22,6 @@
 #define CH10_1    101
 #define CH11_1    111
 #define CH11_2    112
-#define CH12_1    121
 
 #include "WDCSetChapter.h"
 

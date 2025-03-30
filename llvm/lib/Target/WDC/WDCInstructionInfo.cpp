@@ -39,8 +39,8 @@ const WDCInstrInfo *WDCInstrInfo::create(WDCSubtarget &STI) {
 /// Return the number of bytes of code the specified instruction may be.
 unsigned WDCInstrInfo::GetInstSizeInBytes(const MachineInstr &MI) const {
 //@GetInstSizeInBytes - body
-  switch (MI.getOpcode()) {
-  default:
+  // switch (MI.getOpcode()) {
+  // default:
     return MI.getDesc().getSize();
-  }
+  // }
 }

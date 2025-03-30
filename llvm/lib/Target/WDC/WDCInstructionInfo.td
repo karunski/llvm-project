@@ -16,4 +16,4 @@
 //===----------------------------------------------------------------------===//
 include "WDCInstructionFormats.td"
 
-def ORAi   : WDCLogicInstructionImmmediate<0x09, or, "ORA">;
+def ORAi   : WDCLogicInstructionImmmediate<0x09, or, "ORA", SignedImm16Operand>;

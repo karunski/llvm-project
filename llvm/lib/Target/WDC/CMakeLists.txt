@@ -11,6 +11,10 @@ tablegen(LLVM WDCGenInstrInfo.inc -gen-instr-info)
 tablegen(LLVM WDCGenSubtargetInfo.inc -gen-subtarget)
 tablegen(LLVM WDCGenMCPseudoLowering.inc -gen-pseudo-lowering)
 tablegen(LLVM WDCGenCallingConv.inc -gen-callingconv)
+tablegen(LLVM WDCGenDAGISel.inc -gen-dag-isel)
+tablegen(LLVM WDCGenAsmWriter.inc -gen-asm-writer)
+tablegen(LLVM WDCGenCodeEmitter.inc -gen-emitter)
+
 
 # WDCCommonTableGen must be defined
 add_public_tablegen_target(WDCCommonTableGen)
@@ -24,10 +28,13 @@ add_llvm_target(WDCCodeGen
   WDCISelLowering.cpp
   WDCRegisterInfo.cpp
   WDCTargetObjectFile.cpp
+  WDCMCInstLower.cpp
   WDCSEInstructionInfo.cpp
   WDCSERegisterInfo.cpp
   WDCSEFrameLowering.cpp
   WDCSEISelLowering.cpp
+  WDCMCAsmInfo.cpp
+  WDCAsmPrinter.cpp
 
   LINK_COMPONENTS
   Analysis
@@ -37,6 +44,7 @@ add_llvm_target(WDCCodeGen
   MC
   WDCDesc
   WDCInfo
+  WDCAsmPrinter
   SelectionDAG
   Support
   Target
@@ -49,3 +57,4 @@ add_llvm_target(WDCCodeGen
 # Should match with "subdirectories =  MCTargetDesc TargetInfo" in LLVMBuild.txt
 add_subdirectory(TargetInfo)
 add_subdirectory(MCTargetDesc)
+add_subdirectory(InstPrinter)

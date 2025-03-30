@@ -184,7 +184,7 @@ StringRef llvm::object::getELFRelocationTypeName(uint32_t Machine,
     break;
   case ELF::EM_WDC:
     switch (Type) {
-#include "llvm/BinaryFormat/ELFRelocs/WDC.def"
+#include "llvm/BinaryFormat/ELFRelocs/wdc.def"
     }
   default:
     break;
