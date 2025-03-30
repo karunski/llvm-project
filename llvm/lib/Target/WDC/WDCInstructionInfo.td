@@ -66,6 +66,9 @@ let isReturn=1, isTerminator=1, isBarrier=1, hasCtrlDep=1 in {
   def RetRTL : WDCPseudoInst<(outs), (ins), [(WDCRetNode)]>;
 }
 
+def XBA : WDCImpliedInstruction<0xEB, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+                                "XBA", [(set AccumulatorRegisterClass:$dst, (bswap AccumulatorRegisterClass:$src))]>;
+
 // Small immediates
 def : Pat<(i16 SignedImm16Pattern:$in), (LDAi imm:$in)>;
 // def : Pat<(i1  ClearCarryPattern), (CLC)>;
