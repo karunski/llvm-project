@@ -17,13 +17,13 @@
 #include "WDCConfig.h"
 
 #include "WDCInstructionInfo.h"
-#include "WDCSERegisterInfo.h"
+#include "WDCRegisterInfo.h"
 #include "WDCMachineFunction.h"
 
 namespace llvm {
 
 class WDCSEInstrInfo final : public WDCInstrInfo {
-  const WDCSERegisterInfo RI;
+  const WDCRegisterInfo RI;
 
 public:
   explicit WDCSEInstrInfo(const WDCSubtarget &STI);

@@ -54,7 +54,7 @@ public:
   Register getFrameRegister(const MachineFunction &MF) const override;
 
   /// \brief Return GPR register class.
-  virtual const TargetRegisterClass *intRegClass(unsigned Size) const = 0;
+  const TargetRegisterClass *intRegClass(unsigned Size) const;
 };
 
 } // end namespace llvm

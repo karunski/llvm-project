@@ -173,3 +173,8 @@ getFrameRegister(const MachineFunction &MF) const {
   return TFI->hasFP(MF) ? (WDC::S) :
                           (WDC::S);
 }
+
+const TargetRegisterClass *
+WDCRegisterInfo::intRegClass(unsigned Size) const {
+  return &WDC::CPURegsRegClass;
+}
