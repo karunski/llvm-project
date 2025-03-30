@@ -239,26 +239,29 @@ WDCTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
 SDValue llvm::WDCTargetLowering::LowerAdd(SDValue node, SelectionDAG & DAG) const {
   const SDLoc debugLoc{node};
 
+  if (const auto loweredToStackRel = LowerStackRelativeOperand(node, DAG, WDCISD::ADDsr); loweredToStackRel) {
+    return loweredToStackRel;
+  }
+
   const SDValue operands[] = {node.getOperand(0), node.getOperand(1) };
   //const EVT types[] = {operands[0].getValueType(), operands[1].getValueType()};
   const SDNode * nodes[] = {operands[0].getNode(), operands[1].getNode()};
   const unsigned nodesOpcodes[] = {nodes[0]->getOpcode(), nodes[1]->getOpcode()};
-  if (nodesOpcodes[1] == ISD::LOAD) {
-    const auto loadNode = nodes[1];
-    const SDValue loadOperands[] = {loadNode->getOperand(0), loadNode->getOperand(1), loadNode->getOperand(2)};
-    const SDNode * loadOperandNodes[] = {loadOperands[0].getNode(), loadOperands[1].getNode(), loadOperands[2].getNode()};
-    // const unsigned loadOperandOpcodes[] = {loadOperandNodes[0]->getOpcode(), loadOperandNodes[1]->getOpcode()};
-    if (const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(loadOperandNodes[1]); frameIndexNode) {
-      return DAG.getNode(
-          WDCISD::ADDsr, debugLoc, {node.getValueType()},
-          {loadOperands[0], operands[0], loadOperands[1]});
-    }
-  }
-  else if (nodesOpcodes[1] == ISD::Constant) {
+  
+  if (nodesOpcodes[1] == ISD::Constant) {
     return DAG.getNode(WDCISD::ADDi, debugLoc, {node.getValueType()},
                         {operands[0], operands[1]});
   }
-  return TargetLowering::LowerOperation(node, DAG);
+
+  // 65816 doesn't have any instructions that take registers as operands.
+  // Any binary op that has two non-memory operands isn't supported
+  // Store the rhs operand's value to a stack slot, then insert a 'load' from that slot as the new operand, then try again.
+  const auto tempVal = DAG.CreateStackTemporary(node.getValueType());
+  const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(tempVal.getNode());
+  const auto pointerInfo = MachinePointerInfo::getFixedStack(DAG.getMachineFunction(), frameIndexNode->getIndex());
+  const auto tempStore = DAG.getStore(DAG.getEntryNode(), debugLoc, node.getOperand(1), tempVal, pointerInfo);
+  const auto tempLoad = DAG.getLoad(node.getValueType(), debugLoc, tempStore, tempVal, pointerInfo);
+  return DAG.getNode(ISD::ADD, debugLoc, {node.getValueType()}, {operands[0], tempLoad});
 }
 
 SDValue llvm::WDCTargetLowering::LowerStackRelativeOperand(SDValue node, SelectionDAG & DAG, WDCISD::NodeType wdcNode) const {
@@ -273,7 +276,7 @@ SDValue llvm::WDCTargetLowering::LowerStackRelativeOperand(SDValue node, Selecti
           {loadNode->getChain(), node.getOperand(0), loadBasePtrValue});
     }
   }
-  return TargetLowering::LowerOperation(node, DAG);
+  return {};
 }
 
 SDValue llvm::WDCTargetLowering::ExpandShift(SDValue node, SelectionDAG & DAG, unsigned targetOpcode) const {  
