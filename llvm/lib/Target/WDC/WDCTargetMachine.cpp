@@ -118,22 +118,21 @@ WDCTargetMachine::~WDCTargetMachine() = default;
 //                                          CodeGenOpt::Level OL, bool JIT)
 //     : WDCTargetMachine(T, TT, CPU, FS, Options, RM, CM, OL, JIT, true) {}
 
-// const WDCSubtarget *
-// WDCTargetMachine::getSubtargetImpl(const Function &F) const {
-//   std::string CPU = TargetCPU;
-//   std::string FS = TargetFS;
+const WDCSubtarget *
+WDCTargetMachine::getSubtargetImpl(const Function &F) const {
+  std::string CPU = TargetCPU;
+  std::string FS = TargetFS;
 
-//   auto &I = SubtargetMap[CPU + FS];
-//   if (!I) {
-//     // This needs to be done before we create a new subtarget since any
-//     // creation will depend on the TM and the code generation flags on the
-//     // function that reside in TargetOptions.
-//     resetTargetOptions(F);
-//     I = std::make_unique<WDCSubtarget>(TargetTriple, CPU, FS, isLittle,
-//                                          *this);
-//   }
-//   return I.get();
-// }
+  auto &I = SubtargetMap[CPU + FS];
+  if (!I) {
+    // This needs to be done before we create a new subtarget since any
+    // creation will depend on the TM and the code generation flags on the
+    // function that reside in TargetOptions.
+    resetTargetOptions(F);
+    I = std::make_unique<WDCSubtarget>(TargetTriple, CPU, FS, *this);
+  }
+  return I.get();
+}
 
 namespace {
 //@WDCPassConfig {

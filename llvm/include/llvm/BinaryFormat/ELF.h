@@ -1062,7 +1062,7 @@ enum {
 
 // ELF Relocation types for WDC65816
 enum {
-#include "ELFRelocs/wdc.def"
+#include "ELFRelocs/WDC.def"
 };
 
 #undef ELF_RELOC

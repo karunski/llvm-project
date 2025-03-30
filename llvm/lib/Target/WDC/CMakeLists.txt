@@ -10,6 +10,7 @@ tablegen(LLVM WDCGenRegisterInfo.inc -gen-register-info)
 tablegen(LLVM WDCGenInstrInfo.inc -gen-instr-info)
 tablegen(LLVM WDCGenSubtargetInfo.inc -gen-subtarget)
 tablegen(LLVM WDCGenMCPseudoLowering.inc -gen-pseudo-lowering)
+tablegen(LLVM WDCGenCallingConv.inc -gen-callingconv)
 
 # WDCCommonTableGen must be defined
 add_public_tablegen_target(WDCCommonTableGen)
@@ -19,6 +20,14 @@ add_llvm_target(WDCCodeGen
   WDCTargetMachine.cpp
   WDCSubtarget.cpp
   WDCFrameLowering.cpp
+  WDCInstructionInfo.cpp
+  WDCISelLowering.cpp
+  WDCRegisterInfo.cpp
+  WDCTargetObjectFile.cpp
+  WDCSEInstructionInfo.cpp
+  WDCSERegisterInfo.cpp
+  WDCSEFrameLowering.cpp
+  WDCSEISelLowering.cpp
 
   LINK_COMPONENTS
   Analysis

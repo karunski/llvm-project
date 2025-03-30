@@ -82,6 +82,7 @@ def FeatureChapterAll  : SubtargetFeature<"chall", "HasChapterDummy", "true",
 
 include "WDCSchedule.td"
 include "WDCInstructionInfo.td"
+include "WDCCallingConv.td"
 
 def WDCInstrInfo : InstrInfo;
 //===----------------------------------------------------------------------===//
