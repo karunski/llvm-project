@@ -93,8 +93,29 @@ void WDCSEFrameLowering::emitPrologue(MachineFunction &machineFunction,
 }
 
 //@emitEpilogue {
-void WDCSEFrameLowering::emitEpilogue(MachineFunction &MF,
-                                 MachineBasicBlock &MBB) const {
+void WDCSEFrameLowering::emitEpilogue(MachineFunction &machineFunc,
+                                      MachineBasicBlock &machineBasicBlock) const {
+  auto basicBlockIter    = machineBasicBlock.getFirstTerminator();
+  auto &machineFrameInfo = machineFunc.getFrameInfo();
+  // auto * wdcFunctionInfo = machineFunc.getInfo<WDCFunctionInfo>();
+
+  const auto &targetInstrInfo =
+      *static_cast<const WDCSEInstrInfo *>(Subtarget.getInstrInfo());
+  // const Cpu0RegisterInfo &RegInfo =
+  //     *static_cast<const Cpu0RegisterInfo *>(STI.getRegisterInfo());
+
+  // DebugLoc DL = basicBlockIter != machineBasicBlock.end() ? basicBlockIter->getDebugLoc() : DebugLoc();
+  // Cpu0ABIInfo ABI = STI.getABI();
+  // unsigned SP = Cpu0::SP;
+
+  // Get the number of bytes from FrameInfo
+  const auto stackSize = machineFrameInfo.getStackSize();
+
+  if (!stackSize)
+    return;
+
+  // Adjust stack.
+  targetInstrInfo.adjustStackPtr(WDC::S, stackSize, machineBasicBlock, basicBlockIter);
 }
 //}
 
