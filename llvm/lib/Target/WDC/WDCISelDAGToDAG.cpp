@@ -86,7 +86,12 @@ class WDCDAGToDAGISel : public SelectionDAGISel {
     }
   
     void processFunctionAfterISel(MachineFunction &MF);
-  
+
+    bool IsProfitableToFold(SDValue N, SDNode *U, SDNode *Root) const override {
+      // It's always profitable to fold operand N into the instruction U into Root,
+      // because there are no instructions that take registers as operands.
+      return true;
+    }
   };
 
 bool WDCDAGToDAGISel::runOnMachineFunction(MachineFunction &MF) {

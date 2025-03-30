@@ -59,6 +59,7 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::ADDsr:             return "WDCISD::ADDsr";
   case WDCISD::ANDsr:             return "WDCISD::ANDsr";
   case WDCISD::EORsr:             return "WDCISD::EORsr";
+  case WDCISD::SETCCsr:           return "WDCISD::SETCCsr";
   case WDCISD::SUBsr:             return "WDCISD::SUBsr";
   case WDCISD::ORAsr:             return "WDCISD::ORAsr";
   default:                        return NULL;
@@ -86,6 +87,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::SHL,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SRA,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::XOR,  MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::SETCC, MVT::i16, LegalizeAction::Custom);
 
   // must, computeRegisterProperties - Once all of the register classes are
   //  added, this allows us to compute derived properties we expose.
@@ -272,13 +274,22 @@ SDValue llvm::WDCTargetLowering::LowerAdd(SDValue node, SelectionDAG & DAG) cons
 SDValue llvm::WDCTargetLowering::LowerStackRelativeOperand(SDValue node, SelectionDAG & DAG, WDCISD::NodeType wdcNode) const {
   const SDLoc debugLoc{node};
 
+  // All instructions are effectively using Accumulator as the first operand, and Memory as the second.
+  // Therefore, we have to try to fold the load for the memory operand into the instruction if possible.
+  // The resulting wdcNode must take a chain operand, which will be assigned to whatever the load was chained to.
   const auto rhsOperand = node.getOperand(1);
   if (const auto loadNode = dyn_cast<LoadSDNode>(rhsOperand.getNode()); loadNode) {
     const auto loadBasePtrValue = loadNode->getBasePtr();
     if (const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(loadBasePtrValue.getNode()); frameIndexNode) {
-      return DAG.getNode(
-          wdcNode, debugLoc, {node.getValueType()},
-          {loadNode->getChain(), node.getOperand(0), loadBasePtrValue});
+      SmallVector<SDValue> newOperands;
+      newOperands.push_back(loadNode->getChain()); // First operand is the chain from the load that is folding
+      newOperands.push_back(node.getOperand(0)); // Second operand is the accumulator register.
+      newOperands.push_back(loadBasePtrValue); // The instruction will directly load from this frame index base value.
+                                                  // This effectively replaces operand 1.
+      for (unsigned opNum = 2; opNum < node.getNumOperands(); opNum += 1) {// transfer any remaining operands into the new node
+        newOperands.push_back(node.getOperand(opNum));
+      }
+      return DAG.getNode(wdcNode, debugLoc, {node.getValueType(), MVT::Other}, newOperands);
     }
   }
   return {};
@@ -328,6 +339,9 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
   }
   else if (opcode == ISD::XOR) {
     return LowerStackRelativeOperand(node, DAG, WDCISD::EORsr);
+  }
+  else if (opcode == ISD::SETCC) {
+    return LowerStackRelativeOperand(node, DAG, WDCISD::SETCCsr);
   }
 
   return TargetLowering::LowerOperation(node, DAG);

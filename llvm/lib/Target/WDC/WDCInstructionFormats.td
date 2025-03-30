@@ -92,6 +92,7 @@ class WDCStackRelativeInstruction<bits<8> opcode, dag outs, dag ins, string asms
   let Opcode = opcode;
   let Inst{15-8} = opcode; 
   let Inst{7-0} = spoffset;
+  let mayLoad = true;
 }
 
 def SignedImm16Operand      : Operand<i16> {

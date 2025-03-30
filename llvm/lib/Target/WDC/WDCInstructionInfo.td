@@ -46,11 +46,11 @@ def ANDsr : InstructionLogicStackRelative<0x23, "AND", ANDsrNode>;
 def ASL : WDCImpliedInstruction<0x0A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src), 
                                  "ASL\tA", [(set AccumulatorRegisterClass:$dst, (shl AccumulatorRegisterClass:$src, OnePattern))]>;
 
-let mayLoad = true in {
 def CMPi : WDCImmediateInstruction<0xc9, (outs StatusReg:$sr), (ins AccumulatorRegisterClass:$src, UnsignedImm16Operand:$constant),
-                                   "CMP\t$constant", 
-                                   [/*(set StatusReg:$sr, (seteq AccumulatorRegisterClass:$src, UnsignedImm16Pattern:$constant))*/]>;
-}
+                                   "CMP\t$constant", []>;
+def CMPsr : WDCStackRelativeInstruction<0xc3, (outs StatusReg:$sr),
+                                        (ins AccumulatorRegisterClass:$src, StackOffsetOperand:$spoffset),
+                                        "CMP\t$spoffset", []>;
 
 def EORi : WDCLogicInstructionImmediate<0x49, xor, "EOR", UnsignedImm16Operand>;
 def EORsr : InstructionLogicStackRelative<0x43, "EOR", EORsrNode>;
@@ -94,5 +94,8 @@ def XBA : WDCImpliedInstruction<0xEB, (outs AccumulatorRegisterClass:$dst), (ins
 
 // Small immediates
 def : Pat<(i16 SignedImm16Pattern:$in), (LDAi imm:$in)>;
-def : Pat<(seteq AccumulatorRegisterClass:$src, UnsignedImm16Pattern:$const), (ANDi (LSR (COPY_TO_REGCLASS (CMPi AccumulatorRegisterClass:$src, imm:$const), AccumulatorRegisterClass)), 1)>;
+def : Pat<(seteq AccumulatorRegisterClass:$src, UnsignedImm16Pattern:$const), (
+  ANDi (LSR (COPY_TO_REGCLASS (CMPi AccumulatorRegisterClass:$src, imm:$const), AccumulatorRegisterClass)), 1)>;
+def : Pat<(SETCCsrNode AccumulatorRegisterClass:$src, frameIndexPattern:$spoffset, SETEQ),
+          (ANDi (LSR (COPY_TO_REGCLASS (CMPsr AccumulatorRegisterClass:$src, $spoffset), AccumulatorRegisterClass)), 1)>;
 // def : Pat<(zext StatusReg:$in), (ANDi (COPY_TO_REGCLASS $in, AccumulatorRegisterClass), 0x00FF)>;
