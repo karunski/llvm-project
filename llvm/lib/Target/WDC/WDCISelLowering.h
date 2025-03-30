@@ -175,7 +175,7 @@ namespace llvm {
 
     SDValue LowerSub(SDValue node, SelectionDAG &DAG) const;
 
-    SDValue LowerShl(SDValue node, SelectionDAG &DAG) const;
+    SDValue ExpandShift(SDValue node, SelectionDAG &DAG, unsigned targetOpcode) const;
 
     SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
 

@@ -93,6 +93,7 @@ private:
   void expandADD(MachineBasicBlock &MBB, MachineBasicBlock::iterator I, unsigned realOpcode) const;
   void expandSUB(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
                  const unsigned realOpcode) const;
+  void expandSRA(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
 };
 }
 

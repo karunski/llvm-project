@@ -79,6 +79,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::ADD, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SUB, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SHL, MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::SRA, MVT::i16, LegalizeAction::Custom);
 }
 
 std::unique_ptr<const WDCTargetLowering> WDCTargetLowering::create(const WDCTargetMachine &TM,
@@ -268,17 +269,19 @@ SDValue llvm::WDCTargetLowering::LowerSub(SDValue node, SelectionDAG & DAG) cons
   return TargetLowering::LowerOperation(node, DAG);
 }
 
-SDValue llvm::WDCTargetLowering::LowerShl(SDValue node, SelectionDAG & DAG) const {  
+SDValue llvm::WDCTargetLowering::ExpandShift(SDValue node, SelectionDAG & DAG, unsigned targetOpcode) const {  
   if (const auto shiftAmtNode = dyn_cast<ConstantSDNode>(node.getOperand(1).getNode()); shiftAmtNode) {
     const auto debugLoc = SDLoc{node};
     
-    SDValue machineASLNode{DAG.getMachineNode(WDC::ASL, debugLoc, {node.getValueType()}, {node.getOperand(0)}), 0};//DAG.getNode(WDCISD::ASL, debugLoc, {node.getValueType()}, {node.getOperand(0)});
+    // Shift by one; which is legal for this architecture
+    SDValue machineASLNode{DAG.getMachineNode(targetOpcode, debugLoc, {node.getValueType()}, {node.getOperand(0)}), 0};
 
     if (shiftAmtNode->isOne()) {
       return machineASLNode;
     }
     else {
-      return DAG.getNode(ISD::SHL, debugLoc, {node.getValueType()},
+      // attach another node for shiftamount - 1.  It will get lowered on the next iteration (or it will be shift by one)
+      return DAG.getNode(node.getOpcode(), debugLoc, {node.getValueType()},
                   {machineASLNode, DAG.getConstant(shiftAmtNode->getAsZExtVal() - 1, debugLoc, MVT::i16)});
     }
   }
@@ -294,7 +297,10 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
     return LowerSub(node, DAG);
   }
   else if (opcode == ISD::SHL) {
-    return LowerShl(node, DAG);
+    return ExpandShift(node, DAG, WDC::ASL);
+  }
+  else if (opcode == ISD::SRA) {
+    return ExpandShift(node, DAG, WDC::SRA);
   }
 
   return TargetLowering::LowerOperation(node, DAG);

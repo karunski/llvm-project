@@ -95,6 +95,10 @@ MachineBasicBlock &MBB = *MI.getParent();
     break;
   case WDC::SUBsr:
     expandSUB(MBB, MI, WDC::SBCsr);
+    break;
+  case WDC::SRA:
+    expandSRA(MBB, MI);
+    break;
   }
 
   MBB.erase(MI);
@@ -192,4 +196,9 @@ void llvm::WDCInstrInfo::expandSUB(MachineBasicBlock &MBB, MachineBasicBlock::it
       .add(I->getOperand(0))
       .add(I->getOperand(1))
       .add(I->getOperand(2));
+}
+
+void llvm::WDCInstrInfo::expandSRA(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const {
+  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::CMPi)).add(I->getOperand(1)).addImm(0x8000);
+  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::ROR));
 }

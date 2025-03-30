@@ -29,6 +29,9 @@ def TCS    : WDCTransferInstruction<0x1B, "TCS">;
 def TCD    : WDCTransferInstruction<0x5D, "TCD">;
 
 def CLC    : WDCStatusControlInstruction<0x18, "CLC", CarryRegisterClass, []>;
+def CMPi   : WDCImmediateInstruction<0xc9, (outs), (ins AccumulatorRegisterClass:$src, UnsignedImm16Operand:$constant), 
+                                    "CMP\t$constant", []>;
+
 def SEC    : WDCStatusControlInstruction<0x38, "SEC", CarryRegisterClass, []>;
 
 let isAdd = 1 in {
@@ -49,6 +52,12 @@ def SBCsr  : WDCAddSubCarryInstructionStackRelative<0xE3,subc, "SBC">;
 
 def PHB : WDCStackInstruction<0x0B, "PHB">;
 def PLB : WDCStackInstruction<0xAB, "PLB">;
+
+def ROR : WDCImpliedInstruction<0x2A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+                                "ROR\tA", []>;
+
+def SRA : WDCPseudoInst<(outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+                         [(set AccumulatorRegisterClass:$dst, (sra AccumulatorRegisterClass:$src, OnePattern))]>;
 
 let isReturn=1, isTerminator=1, isBarrier=1, hasCtrlDep=1 in {
   def RetRTL : WDCPseudoInst<(outs), (ins), [(WDCRetNode)]>;
