@@ -44,3 +44,32 @@ unsigned WDCInstrInfo::GetInstSizeInBytes(const MachineInstr &MI) const {
     return MI.getDesc().getSize();
   // }
 }
+
+void llvm::WDCInstrInfo::storeRegToStackSlot(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MI, Register SrcReg,
+    bool isKill, int FrameIndex, const TargetRegisterClass *RC,
+    const TargetRegisterInfo *TRI, Register VReg,
+    MachineInstr::MIFlag /*Flags*/) const {
+  storeRegToStack(MBB, MI, SrcReg, isKill, FrameIndex, RC, TRI, 0);
+}
+
+void llvm::WDCInstrInfo::loadRegFromStackSlot(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MI, Register DestReg,
+    int FrameIndex, const TargetRegisterClass *RC,
+    const TargetRegisterInfo *TRI, Register /*VReg*/,
+    MachineInstr::MIFlag /*Flags*/) const {
+  loadRegFromStack(MBB, MI, DestReg, FrameIndex, RC, TRI, 0);
+}
+
+MachineMemOperand *
+llvm::WDCInstrInfo::GetMemOperand(MachineBasicBlock &basicBlock,
+                                    int frameIndex,
+                                    MachineMemOperand::Flags Flags) const {
+  auto &machineFunction = *basicBlock.getParent();
+  auto &frameInfo = machineFunction.getFrameInfo();
+
+  return machineFunction.getMachineMemOperand(
+      MachinePointerInfo::getFixedStack(machineFunction, frameIndex), Flags,
+      frameInfo.getObjectSize(frameIndex),
+      frameInfo.getObjectAlign(frameIndex));
+}

@@ -117,7 +117,17 @@ void WDCSEFrameLowering::emitEpilogue(MachineFunction &machineFunc,
   // Adjust stack.
   targetInstrInfo.adjustStackPtr(WDC::S, stackSize, machineBasicBlock, basicBlockIter);
 }
-//}
+
+void llvm::WDCSEFrameLowering::determineCalleeSaves(MachineFunction &MF,
+                                                    BitVector &SavedRegs,
+                                                    RegScavenger *RS) const {
+  TargetFrameLowering::determineCalleeSaves(MF, SavedRegs, RS);
+  // const auto  *Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
+
+  // if (MF.getFrameInfo().hasCalls()) {
+  //   setAliasRegs(MF, SavedRegs, Cpu0::LR);
+  // }
+}
 
 const WDCFrameLowering *
 llvm::createWDCSEFrameLowering(const WDCSubtarget &ST) {

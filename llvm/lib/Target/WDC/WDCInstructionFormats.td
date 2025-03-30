@@ -114,7 +114,6 @@ class WDCLogicInstructionImmediate<
 
 class WDCLoadInstructionImmediate<
     bits<8> op,
-    SDNode  opnode,
     string  asmstr,
     Operand operand>
 : WDCImmediateInstruction<
@@ -122,11 +121,13 @@ class WDCLoadInstructionImmediate<
     (outs AccumulatorRegisterClass:$dst),
     (ins operand:$constant),
     !strconcat(asmstr, "\t$constant"),
-    [(set AccumulatorRegisterClass:$dst, (opnode SignedImm16Pattern:$constant))]
+    [(set AccumulatorRegisterClass:$dst, (load SignedImm16Pattern:$constant))]
   >
 {
   let DisableEncoding = "$dst";
 }
+
+
 
 class WDCPseudoInst<dag outs, dag ins, string asmstr, list<dag> pattern>:
       WDCInst<outs, ins, asmstr, pattern> {
@@ -161,3 +162,18 @@ class WDCStoreInstructionStackRelative<bits<8> opcode, string asmstr, Operand op
   let DisableEncoding = "$accumulator";
   let mayStore = 1;
 }
+
+class WDCLoadInstructionStackRelative<
+  bits<8> opcode,
+  string asmstr,
+  Operand operand>
+: WDCStackRelativeInstruction<
+    opcode,
+    (outs AccumulatorRegisterClass:$dst),
+    (ins operand:$addr),
+    !strconcat(asmstr, "\t$addr"),
+    [(set AccumulatorRegisterClass:$dst, (load addr:$addr))]>
+{
+  let DisableEncoding = "$dst";
+}
+

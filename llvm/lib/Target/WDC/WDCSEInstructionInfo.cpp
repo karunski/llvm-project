@@ -74,6 +74,39 @@ void llvm::WDCSEInstrInfo::adjustStackPtr(unsigned SP, int64_t amount,
   // }
 }
 
+void llvm::WDCSEInstrInfo::storeRegToStack(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MI, Register SrcReg,
+    bool isKill, int FrameIndex, const TargetRegisterClass *RC,
+    const TargetRegisterInfo *TRI, int64_t Offset) const {
+  MachineMemOperand *MMO = GetMemOperand(MBB, FrameIndex, MachineMemOperand::MOStore);
+
+  const auto Opc = WDC::STAsr;
+  assert(Opc && "Register class not handled!");
+
+  BuildMI(MBB, MI, DebugLoc{}, get(Opc))
+      .addReg(SrcReg, getKillRegState(isKill))
+      .addFrameIndex(FrameIndex)
+      .addImm(Offset)
+      .addMemOperand(MMO);
+}
+
+void llvm::WDCSEInstrInfo::loadRegFromStack(MachineBasicBlock &basicBlock,
+                                            MachineBasicBlock::iterator blockIter,
+                                            Register DestReg, int FrameIndex,
+                                            const TargetRegisterClass *RC,
+                                            const TargetRegisterInfo */*TRI*/,
+                                            int64_t Offset) const {
+  const auto debugLoc = blockIter != basicBlock.end() ? blockIter->getDebugLoc() : DebugLoc{};
+
+  const auto MMO = GetMemOperand(basicBlock, FrameIndex, MachineMemOperand::MOLoad);
+  const auto Opc = WDC::LDAsr;
+  assert(Opc && "Register class not handled!");
+  BuildMI(basicBlock, blockIter, debugLoc, get(Opc), DestReg)
+      .addFrameIndex(FrameIndex)
+      .addImm(Offset)
+      .addMemOperand(MMO);
+}
+
 void llvm::WDCSEInstrInfo::expandRTL(MachineBasicBlock &MBB,
                                      MachineBasicBlock::iterator I) const {
   BuildMI(MBB, I, I->getDebugLoc(), get(WDC::RTL));

@@ -48,7 +48,35 @@ public:
   /// Return the number of bytes of code the specified instruction may be.
   unsigned GetInstSizeInBytes(const MachineInstr &MI) const;
 
+  void storeRegToStackSlot(
+      MachineBasicBlock &MBB, MachineBasicBlock::iterator MI, Register SrcReg,
+      bool isKill, int FrameIndex, const TargetRegisterClass *RC,
+      const TargetRegisterInfo *TRI, Register VReg,
+      MachineInstr::MIFlag Flags = MachineInstr::NoFlags) const override;
+
+  virtual void loadRegFromStackSlot(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MI, Register DestReg,
+    int FrameIndex, const TargetRegisterClass *RC,
+    const TargetRegisterInfo *TRI, Register VReg,
+    MachineInstr::MIFlag Flags = MachineInstr::NoFlags) const override;
+
+  virtual void storeRegToStack(MachineBasicBlock &MBB,
+                               MachineBasicBlock::iterator MI, Register SrcReg,
+                               bool isKill, int FrameIndex,
+                               const TargetRegisterClass *RC,
+                               const TargetRegisterInfo *TRI,
+                               int64_t Offset) const = 0;
+
+  virtual void loadRegFromStack(MachineBasicBlock &MBB,
+                                MachineBasicBlock::iterator MI,
+                                Register DestReg, int FrameIndex,
+                                const TargetRegisterClass *RC,
+                                const TargetRegisterInfo *TRI,
+                                int64_t Offset) const = 0;
+
 protected:
+  MachineMemOperand *GetMemOperand(MachineBasicBlock &MBB, int FI,
+                                   MachineMemOperand::Flags Flags) const;
 };
 const WDCInstrInfo *createWDCSEInstrInfo(const WDCSubtarget &STI);
 }

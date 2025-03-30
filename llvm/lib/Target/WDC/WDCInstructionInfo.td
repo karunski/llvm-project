@@ -20,15 +20,15 @@ include "WDCInstructionFormats.td"
 def WDCRetNode : SDNode<"WDCISD::Ret", SDTNone,
                      [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 
-def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
-def LDAi   : WDCLoadInstructionImmediate<0xA9, ld, "LDA", SignedImm16Operand>;
-
 def mem_stack : Operand<iPTR> {
   let PrintMethod = "printMemOperand";
   let MIOperandInfo = (ops StackRegisterClass, SignedImm8Operand);
   let EncoderMethod = "getMemEncoding";
 }
 
+def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
+def LDAi   : WDCLoadInstructionImmediate<0xA9, "LDA", SignedImm16Operand>;
+def LDAsr  : WDCLoadInstructionStackRelative<0xA3, "LDA", mem_stack>;
 def STAsr  : WDCStoreInstructionStackRelative<0x83, "STA", mem_stack>;
 def RTL    : WDCReturnInstruction<0x6b, "RTL">;
 def TSC    : WDCTransferInstruction<0x3B, "TSC", AccumulatorRegisterClass, StackRegisterClass>;

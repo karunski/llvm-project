@@ -22,7 +22,7 @@
 
 namespace llvm {
 
-class WDCSEInstrInfo : public WDCInstrInfo {
+class WDCSEInstrInfo final : public WDCInstrInfo {
   const WDCSERegisterInfo RI;
 
 public:
@@ -34,6 +34,20 @@ public:
   /// Adjust SP by Amount bytes.
   void adjustStackPtr(unsigned SP, int64_t Amount, MachineBasicBlock &MBB,
                       MachineBasicBlock::iterator I) const override;
+
+  void storeRegToStack(MachineBasicBlock &MBB,
+                               MachineBasicBlock::iterator MI, Register SrcReg,
+                               bool isKill, int FrameIndex,
+                               const TargetRegisterClass *RC,
+                               const TargetRegisterInfo *TRI,
+                               int64_t Offset) const override;
+
+  void loadRegFromStack(MachineBasicBlock &MBB,
+                                MachineBasicBlock::iterator MI,
+                                Register DestReg, int FrameIndex,
+                                const TargetRegisterClass *RC,
+                                const TargetRegisterInfo *TRI,
+                                int64_t Offset) const override;
 
 private:
   void expandRTL(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
