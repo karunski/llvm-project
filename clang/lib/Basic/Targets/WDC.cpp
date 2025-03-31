@@ -44,7 +44,7 @@ WDCTargetInfo(const llvm::Triple &Triple, const clang::TargetOptions &)
     Int16Type = SignedInt;
     Char32Type = UnsignedLong;
     SigAtomicType = SignedChar;
-    resetDataLayout("e-S8-p:32:16-i8:8-i16:8-i32:8-i64:8-f32:8-f64:8-n16-a:8-A1-p1:16:16");
+    resetDataLayout("e-S8-p:32:16-i8:8-i16:8-i32:8-i64:8-f32:8-f64:8-n16-a:8");
   }
 
   void getTargetDefines(const clang::LangOptions &, clang::MacroBuilder &Builder) const override {

@@ -63,7 +63,7 @@ def LSR : InstImpl<0x4A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorR
 def SUBsr : ADDSUBStackRelativePseudo<SUBsrNode>;
 
 def SBCi   : WDCAddSubCarryInstructionImmediate<0xE9, subc, "SBC", UnsignedImm16Operand>;
-def SBCsr  : WDCAddSubCarryInstructionStackRelative<0xE3,subc, "SBC">;
+def SBCsr  : WDCAddSubCarryInstructionStackRelative<0xE3, subc, "SBC">;
 
 def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
 def ORAsr  : InstructionLogicStackRelative<0x03, "ORA", ORAsrNode>;

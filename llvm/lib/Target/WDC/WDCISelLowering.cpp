@@ -218,7 +218,7 @@ WDCTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
 
       // Create a SelectionDAG node corresponding to a store
       // to this memory location.
-      SDValue frameIndexNode = DAG.getFrameIndex(frameIndex, MVT::i16);
+      SDValue frameIndexNode = DAG.getFrameIndex(frameIndex, MVT::i32);
       // MemOpChains.push_back(DAG.getStore(
       //     Chain, dl, OutVals[i], FIN,
       //     MachinePointerInfo::getFixedStack(DAG.getMachineFunction(), FI)));
@@ -385,7 +385,6 @@ SDValue llvm::WDCTargetLowering::LowerLoad(LoadSDNode * ldNd, const SDLoc & dbgL
   if (addr_node_op == ISD::LOAD) {
     const auto innerload = cast<LoadSDNode>(addr);
     const auto innerload_addr = innerload->getBasePtr();
-    innerload->getAddressSpace();
     const auto innerload_addr_op = static_cast<ISD::NodeType>(innerload_addr.getOpcode());
     if (innerload_addr_op == ISD::FrameIndex) {
       return DAG.getNode(WDCISD::LDAdpil, dbgLoc, {ldNdVlTp, chVlTp}, {ch, innerload_addr});

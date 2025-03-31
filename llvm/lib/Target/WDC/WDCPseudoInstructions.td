@@ -1,7 +1,7 @@
 class ADDSUBStackRelativePseudo<SDNode PseudoOpNode>
 : InstPseudo<
   (outs AccumulatorRegisterClass:$dst),
-  (ins AccumulatorRegisterClass:$src, Operand<i16>:$slot),
+  (ins AccumulatorRegisterClass:$src, StackOffsetOperand:$slot),
   [(set AccumulatorRegisterClass:$dst, (PseudoOpNode AccumulatorRegisterClass:$src, frameIndexPattern:$slot))]
 >
 {

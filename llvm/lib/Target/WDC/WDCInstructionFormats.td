@@ -143,7 +143,7 @@ def SignedImm8Pattern : PatLeaf<(imm), [{ return isInt<8>(N->getSExtValue()); }]
 def OnePattern : PatLeaf<(i16 imm), [{ return N->isOne(); }]>;
 
 let WantsRoot = true in
-def frameIndexPattern : ComplexPattern<i16, 1, "SelectFrameIndex", [frameindex]>;
+def frameIndexPattern : ComplexPattern<i32, 1, "SelectFrameIndex", [frameindex]>;
 
 class WDCLogicInstructionImmediate<
     bits<8>   op,
@@ -187,7 +187,7 @@ class WDCAddSubCarryInstructionStackRelative<bits<8> op, SDNode opNode, string a
     (outs AccumulatorRegisterClass:$dst),
     (ins AccumulatorRegisterClass:$accumulator, StackOffsetOperand:$spoffset),
     !strconcat(asmstr, "\t$spoffset"),
-    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, (frameIndexPattern:$spoffset)))]
+    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, (load frameIndexPattern:$spoffset)))]
   >
 {
   let DisableEncoding = "$dst,$accumulator";
