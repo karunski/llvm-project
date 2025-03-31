@@ -99,6 +99,10 @@ void llvm::WDCInstPrinter::printStackOffset(const MCInst *MI, int opNum,
   os << MI->getOperand(opNum).getImm() << ",S";
 }
 
+void llvm::WDCInstPrinter::printDirectPageIndirect(const MCInst *MI, int opNum, raw_ostream &os) {
+  os << "[" << MI->getOperand(opNum).getImm() << "]";
+}
+
 //#if CH >= CH7_1
 // The DAG data node, mem_ea of WDCInstrInfo.td, cannot be disabled by
 // ch7_1, only opcode node can be disabled.

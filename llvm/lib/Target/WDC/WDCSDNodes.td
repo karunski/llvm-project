@@ -13,3 +13,4 @@ def SETCCsrNode : SDNode<"WDCISD::SETCCsr",
 def SUBsrNode : SDNode<"WDCISD::SUBsr", BinaryOpNode, [SDNPHasChain, SDNPOutGlue]>;
 def ORAsrNode : SDNode<"WDCISD::ORAsr", BinaryOpNode, [SDNPHasChain]>;
 def Wrapper : SDNode<"WDCISD::Wrapper", SDTIntUnaryOp>;
+def LDAdpilNode : SDNode<"WDCISD::LDAdpil", SDTIntUnaryOp, [SDNPHasChain]>;

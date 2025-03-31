@@ -103,6 +103,15 @@ class InstAbsLong<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pa
   let mayLoad = true;
 }
 
+class InstDrctPgIndrctLong<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
+: Inst<opcode, outs, ins, asmstr, pattern> {
+  field bits<16> Inst;
+  bits<8> DrctPgAddr;
+  let Size = 2;
+  let Inst{7-0} = Opcode;
+  let mayLoad = true;
+}
+
 def SignedImm16Operand      : Operand<i16> {
   let DecoderMethod= "DecodeSimm16";
 }
@@ -117,6 +126,10 @@ def SignedImm8Operand : Operand<i8> {
 
 def StackOffsetOperand : Operand<iPTR> {
   let PrintMethod = "printStackOffset";
+}
+
+def OprndDrctPgIndrct : Operand<iPTR> {
+  let PrintMethod = "printDirectPageIndirect";
 }
 
 def OprndAbsLong : Operand<iPTR> {
@@ -209,8 +222,8 @@ class WDCReturnInstruction<bits<8> opcode, string asmstr>
   let isReturn = 1;
 }
 
-class WDCTransferInstruction<bits<8> opcode, string asmstr>
-: InstImpl<opcode, (outs), (ins), asmstr, []>
+class WDCTransferInstruction<bits<8> opcode, dag outs, dag ins, string asmstr>
+: InstImpl<opcode, outs, ins, asmstr, []>
 {
   // let DisableEncoding = "$src,$dst";
 }
@@ -251,6 +264,7 @@ class WDCLoadInstructionStackRelative<
   let DisableEncoding = "$dst";
   let canFoldAsLoad = 1;
 }
+
 
 class InstructionLogicStackRelative<
   bits<8> opcode,

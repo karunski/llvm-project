@@ -50,6 +50,9 @@ def EORsr : InstructionLogicStackRelative<0x43, "EOR", EORsrNode>;
 
 def LDAal : InstAbsLong<0xAF, (outs AccumulatorRegisterClass:$dst), (ins OprndAbsLong:$src),
                         "LDA\t$src", [(set AccumulatorRegisterClass:$dst, (load (Wrapper (tglobaladdr:$src))))]>;
+def LDAdpil : InstDrctPgIndrctLong<0xA7, (outs AccumulatorRegisterClass:$dst), (ins OprndDrctPgIndrct:$spoffset),
+                        "LDA\t$spoffset",
+                        [(set AccumulatorRegisterClass:$dst, (LDAdpilNode frameIndexPattern:$spoffset))]>;
 def LDAi   : WDCLoadInstructionImmediate<0xA9, "LDA", UnsignedImm16Operand>;
 def LDAsr  : WDCLoadInstructionStackRelative<0xA3, "LDA">;
 
@@ -92,10 +95,10 @@ def SRA : InstPseudo<(outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegis
 
 // "Transfer Carry to least significant bit of A" == ROL A 
 def TCA : InstPseudo<(outs AccumulatorRegisterClass:$dst), (ins StatusReg:$src), []>;
-def TSC : WDCTransferInstruction<0x3B, "TSC">;
-def TDC : WDCTransferInstruction<0x7D, "TDC">;
-def TCS : WDCTransferInstruction<0x1B, "TCS">;
-def TCD : WDCTransferInstruction<0x5B, "TCD">;
+def TSC : WDCTransferInstruction<0x3B, (outs AccumulatorRegisterClass:$dst), (ins), "TSC">;
+def TDC : WDCTransferInstruction<0x7D, (outs AccumulatorRegisterClass:$dst), (ins), "TDC">;
+def TCS : WDCTransferInstruction<0x1B, (outs), (ins AccumulatorRegisterClass:$src), "TCS">;
+def TCD : WDCTransferInstruction<0x5B, (outs), (ins AccumulatorRegisterClass:$src), "TCD">;
 
 def XBA : InstImpl<0xEB, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                                 "XBA", [(set AccumulatorRegisterClass:$dst, (bswap AccumulatorRegisterClass:$src))]>;
@@ -112,4 +115,9 @@ def : Pat<(SETCCsrNode AccumulatorRegisterClass:$src, frameIndexPattern:$spoffse
           (ANDi (LSR (COPY_TO_REGCLASS (CMPsr AccumulatorRegisterClass:$src, $spoffset), AccumulatorRegisterClass)), 1)>;
 def : Pat<(SETCCsrNode AccumulatorRegisterClass:$src, frameIndexPattern:$spoffset, SETGE),
           (ANDi (TCA (CMPsr AccumulatorRegisterClass:$src, $spoffset)), 1)>;
-// def : Pat<(zext StatusReg:$in), (ANDi (COPY_TO_REGCLASS $in, AccumulatorRegisterClass), 0x00FF)>;
+
+def mem_ea : Operand<iPTR> {
+  let PrintMethod = "printMemOperandEA";
+  let EncoderMethod = "getMemEncoding";
+}
+

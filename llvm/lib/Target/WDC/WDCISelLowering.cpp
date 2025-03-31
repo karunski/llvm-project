@@ -62,6 +62,7 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::SETCCsr:           return "WDCISD::SETCCsr";
   case WDCISD::SUBsr:             return "WDCISD::SUBsr";
   case WDCISD::ORAsr:             return "WDCISD::ORAsr";
+  case WDCISD::LDAdpil:           return "WDCISD::LDAdpil";
   default:                        return NULL;
   }
 }
@@ -90,6 +91,9 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::XOR,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SETCC, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::GlobalAddress, MVT::i32, LegalizeAction::Custom);
+  setOperationAction(ISD::LOAD, MVT::i16, LegalizeAction::Custom);
+
+  // setTargetDAGCombine({ISD::LOAD});
 
   // Only SETEQ and SETGE have direct corresponding results after a CMP instruction (Z, and C, respectively)
   // The rest of the operations can be implemented in terms of these two comparisons:
@@ -356,9 +360,11 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
   else if (opcode == ISD::SETCC) {
     return LowerStackRelativeOperand(node, DAG, WDCISD::SETCCsr);
   }
-  else if (opcode == ISD::GlobalAddress)
-  {
+  else if (opcode == ISD::GlobalAddress) {
     return LowerGlobalAddress(cast<GlobalAddressSDNode>(node.getNode()), dbgLoc, DAG);
+  }
+  else if (opcode == ISD::LOAD) {
+    return LowerLoad(cast<LoadSDNode>(node.getNode()), dbgLoc, DAG);
   }
 
   return TargetLowering::LowerOperation(node, DAG);
@@ -369,6 +375,25 @@ SDValue llvm::WDCTargetLowering::LowerGlobalAddress(GlobalAddressSDNode * glblAd
   const auto addrValT = glblAddrNd->getValueType(0);
   return DAG.getNode(WDCISD::Wrapper, dbgLoc, addrValT, DAG.getTargetGlobalAddress(glblAddr, dbgLoc, addrValT));
 }
+
+SDValue llvm::WDCTargetLowering::LowerLoad(LoadSDNode * ldNd, const SDLoc & dbgLoc, SelectionDAG & DAG) const {
+  const auto addr = ldNd->getBasePtr();
+  const auto ldNdVlTp = ldNd->getValueType(0);
+  const auto chVlTp = ldNd->getValueType(1);
+  const auto addr_node_op = static_cast<ISD::NodeType>(addr.getOpcode());
+  const auto ch = ldNd->getChain();
+  if (addr_node_op == ISD::LOAD) {
+    const auto innerload = cast<LoadSDNode>(addr);
+    const auto innerload_addr = innerload->getBasePtr();
+    innerload->getAddressSpace();
+    const auto innerload_addr_op = static_cast<ISD::NodeType>(innerload_addr.getOpcode());
+    if (innerload_addr_op == ISD::FrameIndex) {
+      return DAG.getNode(WDCISD::LDAdpil, dbgLoc, {ldNdVlTp, chVlTp}, {ch, innerload_addr});
+    }
+  }
+  return {};
+}
+
 // SDValue llvm::WDCTargetLowering::PerformDAGCombine(SDNode *nodeptr,
 //                                                    DAGCombinerInfo &DCI) const {
 //   const auto nodeop = static_cast<ISD::NodeType>(nodeptr->getOpcode());
@@ -376,9 +401,13 @@ SDValue llvm::WDCTargetLowering::LowerGlobalAddress(GlobalAddressSDNode * glblAd
 //     const auto loadnode = cast<LoadSDNode>(nodeptr);
 //     const auto addr = loadnode->getBasePtr();
 //     const auto addr_node_op = static_cast<ISD::NodeType>(addr.getOpcode());
-//     if (addr_node_op == ISD::GlobalAddress) {
-//       const auto addrnode = cast<GlobalAddressSDNode>(addr.getNode());
-//       const auto global = addrnode->getGlobal();
+//     if (addr_node_op == ISD::LOAD) {
+//       const auto innerload = cast<LoadSDNode>(addr);
+//       const auto innerload_addr = innerload->getBasePtr();
+//       const auto innerload_addr_op = static_cast<ISD::NodeType>(innerload_addr.getOpcode());
+//       if (innerload_addr_op == ISD::FrameIndex) {
+//         return DCI.CombineTo(nodeptr, )
+//       }
 //     }
 //   }
 //   return SDValue();
