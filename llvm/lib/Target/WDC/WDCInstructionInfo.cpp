@@ -105,6 +105,8 @@ MachineBasicBlock &MBB = *MI.getParent();
   case WDC::TCA:
     expandTCA(MBB, MI);
     break;
+  case WDC::LEAsr:
+    expandLEA(MBB, MI);
   }
 
   MBB.erase(MI);
@@ -216,6 +218,14 @@ void llvm::WDCInstrInfo::expandROTL(MachineBasicBlock &MBB, MachineBasicBlock::i
 
 void llvm::WDCInstrInfo::expandTCA(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const {
   BuildMI(MBB, I, I->getDebugLoc(), get(WDC::ROL));
+}
+
+void llvm::WDCInstrInfo::expandLEA(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const {
+  const auto dbgLoc = I->getDebugLoc();
+  BuildMI(MBB, I, dbgLoc, get(WDC::TSC));
+  BuildMI(MBB, I, dbgLoc, get(WDC::CLC));
+  const auto frmIdxOprnd = I->getOperand(1);
+  BuildMI(MBB, I, dbgLoc, get(WDC::ADCi)).addReg(WDC::A).addReg(WDC::A).add(frmIdxOprnd);
 }
 
 void llvm::WDCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,

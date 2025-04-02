@@ -63,6 +63,7 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::SUBsr:             return "WDCISD::SUBsr";
   case WDCISD::ORAsr:             return "WDCISD::ORAsr";
   case WDCISD::LDAdpil:           return "WDCISD::LDAdpil";
+  case WDCISD::LEA:               return "WDCISD::LEA";
   default:                        return NULL;
   }
 }
@@ -92,6 +93,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::SETCC, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::GlobalAddress, MVT::i32, LegalizeAction::Custom);
   setOperationAction(ISD::LOAD, MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::STORE, MVT::i32, LegalizeAction::Custom);
 
   // setTargetDAGCombine({ISD::LOAD});
 
@@ -222,7 +224,7 @@ WDCTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
       // MemOpChains.push_back(DAG.getStore(
       //     Chain, dl, OutVals[i], FIN,
       //     MachinePointerInfo::getFixedStack(DAG.getMachineFunction(), FI)));
-      Chain = DAG.getStore(Chain, DL, Val, frameIndexNode, MachinePointerInfo::getStack(MF, frameIndex));
+      Chain = DAG.getStore(Chain, DL, Val, frameIndexNode, MachinePointerInfo::getStack(MF, 0));
     // }
   }
 
@@ -366,6 +368,9 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
   else if (opcode == ISD::LOAD) {
     return LowerLoad(cast<LoadSDNode>(node.getNode()), dbgLoc, DAG);
   }
+  else if (opcode == ISD::STORE) {
+    return LowerStore(cast<StoreSDNode>(node.getNode()), dbgLoc, DAG);
+  }
 
   return TargetLowering::LowerOperation(node, DAG);
 }
@@ -391,6 +396,35 @@ SDValue llvm::WDCTargetLowering::LowerLoad(LoadSDNode * ldNd, const SDLoc & dbgL
     }
   }
   return {};
+}
+
+SDValue llvm::WDCTargetLowering::LowerStore(StoreSDNode * stNd, const SDLoc& dbgLoc, SelectionDAG & DAG) const {
+  const auto valNd = stNd->getValue();
+  const auto addrNd = stNd->getBasePtr();
+  const auto chNd = stNd->getChain();
+  const auto valTp = static_cast<ISD::NodeType>(valNd->getOpcode());
+  const auto addrTp = static_cast<ISD::NodeType>(addrNd->getOpcode());
+  if (valTp == ISD::FrameIndex) {
+    // The value is a FrameIndex, which is an address.  Currently all addresses are 24-bit.  As far as I can
+    // tell llvm requires addresses to have a power-of-2 number of bits; so 32 it is.
+    if (addrTp == ISD::FrameIndex) {
+      // destination ptr is a FrameIndex; so we're copying the address of a stack variable into another slot on
+      // the stack; for example to pass to a function that takes a parameter by reference
+      // the upper 16 bits are 0 for a frameindex ptr; because the stack is only 16-bit.
+      const auto destAddrNd = cast<FrameIndexSDNode>(addrNd.getNode());
+      const auto zeroNd = DAG.getConstant(0, dbgLoc, MVT::i16);
+      const auto destAddrPtrInfoHigh = MachinePointerInfo::getFixedStack(DAG.getMachineFunction(), destAddrNd->getIndex(), 2);
+      const auto storeHigh = DAG.getStore(chNd, dbgLoc, zeroNd, addrNd, destAddrPtrInfoHigh);
+      // The lower 16 bits are the address of the stack slot
+      const auto getStkReg = DAG.getNode(WDCISD::LEA, dbgLoc, MVT::i16, valNd);
+      const auto destAddrPtrInfoLow = MachinePointerInfo::getFixedStack(DAG.getMachineFunction(), destAddrNd->getIndex(), 0);
+      const auto storeLow = DAG.getStore(chNd, dbgLoc, getStkReg, addrNd, destAddrPtrInfoLow);
+      SmallVector<SDValue> joinedVals{storeHigh, storeLow};
+      return DAG.getTokenFactor(dbgLoc, joinedVals);
+    }
+  }
+
+  return SDValue{};
 }
 
 // SDValue llvm::WDCTargetLowering::PerformDAGCombine(SDNode *nodeptr,

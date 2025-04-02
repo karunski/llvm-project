@@ -72,7 +72,8 @@ getReservedRegs(const MachineFunction &MF) const {
 
 //  For 5 local i16 vars + 1 return i16:
 //  SP+11+3 FrameIndex -1 ObjectOffset 0  |
-//  SP+11    return addr (3 bytes)
+//  SP+13    return addr (3 bytes)
+//  SP+11    direct page storage
 //  SP+9   FrameIndex 0  ObjectOffset  -2 |
 //  SP+7   FrameIndex 1  ObjectOffset  -4 |- local vars 2 * 5 = 10 bytes
 //  SP+5   FrameIndex 2  ObjectOffset  -6 |
@@ -102,11 +103,20 @@ bool WDCRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
              errs() << "<--------->\n"
                     << machineInstruction);
 
-  const auto frameIndex = machineInstruction.getOperand(i).getIndex();
+  const auto frameIndexOp = machineInstruction.getOperand(i);
+  const auto opcode = machineInstruction.getOpcode();
+  auto mmo_offset = 0;
+  if (opcode == WDC::STAsr && machineInstruction.hasOneMemOperand()) {
+    const auto mmo_iter = machineInstruction.memoperands_begin();
+    const auto & mmo = *mmo_iter;
+    mmo_offset = mmo->getOffset();
+  }
+
+  const auto frameIndex = frameIndexOp.getIndex();
   const auto stackSize = machineFunction.getFrameInfo().getStackSize();
   static const auto FrameReservedOverhead = 5; /* return address is 3 bytes, saved DP is 2 bytes */
   const auto stackPointerOffset = machineFunction.getFrameInfo().getObjectOffset(frameIndex)
-    + (frameIndex < 0 ? FrameReservedOverhead : 0)  + 1 /* SP is always one below actual stack top */;
+    +mmo_offset + (frameIndex < 0 ? FrameReservedOverhead : 0)  + 1 /* SP is always one below actual stack top */;
 
   LLVM_DEBUG(errs() << "frameIndex : " << frameIndex << "\n"
                     << "stackPointerOffset   : " << stackPointerOffset << "\n"

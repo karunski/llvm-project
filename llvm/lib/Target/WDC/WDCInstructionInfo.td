@@ -56,6 +56,10 @@ def LDAdpil : InstDrctPgIndrctLong<0xA7, (outs AccumulatorRegisterClass:$dst), (
 def LDAi   : WDCLoadInstructionImmediate<0xA9, "LDA", UnsignedImm16Operand>;
 def LDAsr  : WDCLoadInstructionStackRelative<0xA3, "LDA">;
 
+// Pseudo instruction to copy the address of a stack slot into the accumulator
+def LEAsr  : InstPseudo<(outs AccumulatorRegisterClass:$dst), (ins StackOffsetOperand:$frameIndex),
+                        [(set AccumulatorRegisterClass:$dst, (LEANode frameIndexPattern:$frameIndex))]>;
+
 def LSR : InstImpl<0x4A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
                                 "LSR\tA", 
                                 [(set AccumulatorRegisterClass:$dst, (srl AccumulatorRegisterClass:$src, OnePattern))]>;

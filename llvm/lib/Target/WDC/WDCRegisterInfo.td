@@ -43,7 +43,11 @@ let Namespace = "WDC" in {
   def PC : WDCArchReg<"PC">,  DwarfRegNum<[4]>;
   def CARRY : WDCReg<"C">;
 
-  def ADDR0 : WDCFakeReg<"ADDR0">, DwarfRegNum<[100]>;
+  def ADDR0 : WDCReg<"ADDR0"> {
+      let isArtificial = true;
+      let SubRegs = [A,Y];
+      let SubRegIndices = [SubRegIndex<8,0>, SubRegIndex<8,8>];
+  }
 }
 
 class WDCStatusReg : WDCArchReg<"P">

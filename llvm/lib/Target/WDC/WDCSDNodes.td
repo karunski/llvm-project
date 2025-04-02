@@ -14,3 +14,4 @@ def SUBsrNode : SDNode<"WDCISD::SUBsr", BinaryOpNode, [SDNPHasChain, SDNPOutGlue
 def ORAsrNode : SDNode<"WDCISD::ORAsr", BinaryOpNode, [SDNPHasChain]>;
 def Wrapper : SDNode<"WDCISD::Wrapper", SDTIntUnaryOp>;
 def LDAdpilNode : SDNode<"WDCISD::LDAdpil", SDTLoad, [SDNPHasChain]>;
+def LEANode : SDNode<"WDCISD::LEA", SDTypeProfile<1, 1, [SDTCisInt<0>, SDTCisPtrTy<1>]>, []>;

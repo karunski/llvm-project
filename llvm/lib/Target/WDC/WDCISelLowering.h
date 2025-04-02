@@ -71,7 +71,8 @@ namespace llvm {
       SETCCsr,
       SUBsr,
       ORAsr,
-      LDAdpil
+      LDAdpil,
+      LEA,
     };
   }
 
@@ -182,6 +183,9 @@ namespace llvm {
 
     SDValue LowerLoad(LoadSDNode *ldNd, const SDLoc &dbgLoc,
                       SelectionDAG &DAG) const;
+
+    SDValue LowerStore(StoreSDNode *stNd, const SDLoc &dbgLoc,
+                       SelectionDAG &DAG) const;
 
     SDValue LowerAdd(SDValue node, SelectionDAG &DAG) const;
 
