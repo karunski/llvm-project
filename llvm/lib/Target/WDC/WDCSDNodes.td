@@ -14,4 +14,7 @@ def SUBsrNode : SDNode<"WDCISD::SUBsr", BinaryOpNode, [SDNPHasChain, SDNPOutGlue
 def ORAsrNode : SDNode<"WDCISD::ORAsr", BinaryOpNode, [SDNPHasChain]>;
 def Wrapper : SDNode<"WDCISD::Wrapper", SDTIntUnaryOp>;
 def LDAdpilNode : SDNode<"WDCISD::LDAdpil", SDTLoad, [SDNPHasChain]>;
+def LDAiNode : SDNode<"WDCISD::LDAi", SDTypeProfile<1, 2, [SDTCisInt<0>, SDTCisInt<1>, SDTCisInt<2>, SDTCisSameAs<0,1>]>>;
 def LEANode : SDNode<"WDCISD::LEA", SDTypeProfile<1, 1, [SDTCisInt<0>, SDTCisPtrTy<1>]>, []>;
+def STANode : SDNode<"WDCISD::STA", SDTypeProfile<0, 3, [SDTCisPtrTy<1>, SDTCisInt<2>]>, [SDNPHasChain,SDNPMayStore]>;
+def SETMNode : SDNode<"WDCISD::SETM", SDTypeProfile<1, 1, [SDTCisInt<0>, SDTCisInt<1>, SDTCisSameAs<0, 1>]>>;

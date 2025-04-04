@@ -42,6 +42,7 @@ let Namespace = "WDC" in {
   def S  : WDCArchReg<"S">,   DwarfRegNum<[3]>;
   def PC : WDCArchReg<"PC">,  DwarfRegNum<[4]>;
   def CARRY : WDCReg<"C">;
+  def M : WDCReg<"M">;
 
   def ADDR0 : WDCReg<"ADDR0"> {
       let isArtificial = true;
@@ -52,8 +53,8 @@ let Namespace = "WDC" in {
 
 class WDCStatusReg : WDCArchReg<"P">
 {
-  let SubRegs = [CARRY];
-  let SubRegIndices = [SubRegIndex<1, 0>];
+  let SubRegs = [CARRY, M];
+  let SubRegIndices = [SubRegIndex<1, 0>, SubRegIndex<1, 5>];
 }
 
 def P : WDCStatusReg, DwarfRegNum<[6]>;
@@ -72,6 +73,7 @@ def CPURegs : RegisterClass<"WDC", [i16], 8, (add
 )>;
 
 def AccumulatorRegisterClass : RegisterClass<"WDC", [i16], 8, (add A)>;
+def RegsA8 : RegisterClass<"WDC", [i8], 8, (add A)>;
 
 def IndexRegs : RegisterClass<"WDC", [i16], 8, (add X, Y)>;
 
@@ -88,3 +90,5 @@ let Size=8 in {
 }
 
 def FakeRegs : RegisterClass<"WDC", [i32], 8, (add ADDR0)>;
+
+def FlagsM : RegisterClass<"WDC", [i1], 8, (add M)>;

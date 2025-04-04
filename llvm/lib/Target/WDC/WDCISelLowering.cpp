@@ -63,7 +63,10 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::SUBsr:             return "WDCISD::SUBsr";
   case WDCISD::ORAsr:             return "WDCISD::ORAsr";
   case WDCISD::LDAdpil:           return "WDCISD::LDAdpil";
+  case WDCISD::LDAi:              return "WDCISD::LDAi";
   case WDCISD::LEA:               return "WDCISD::LEA";
+  case WDCISD::STA:               return "WDCISD::STA";
+  case WDCISD::SETM:              return "WDCISD::SETM";
   default:                        return NULL;
   }
 }
@@ -76,9 +79,11 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   //@WDCSETargetLowering body {
   // Set up the register classes
   addRegisterClass(MVT::i16, &WDC::AccumulatorRegisterClassRegClass);
+  addRegisterClass(MVT::i8, &WDC::RegsA8RegClass);
   addRegisterClass(MVT::i16, &WDC::IndexRegsRegClass);
   addRegisterClass(MVT::i8, &WDC::StatusRegRegClass);
   addRegisterClass(MVT::i32, &WDC::FakeRegsRegClass);
+  addRegisterClass(MVT::i1, &WDC::FlagsMRegClass);
 
   setBooleanContents(TargetLowering::ZeroOrOneBooleanContent);
 
@@ -93,7 +98,10 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::SETCC, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::GlobalAddress, MVT::i32, LegalizeAction::Custom);
   setOperationAction(ISD::LOAD, MVT::i16, LegalizeAction::Custom);
-  setOperationAction(ISD::STORE, MVT::i32, LegalizeAction::Custom);
+  setOperationAction({ISD::STORE}, {MVT::i32,MVT::i16,MVT::i8}, LegalizeAction::Custom);
+  // setOperationAction(ISD::STORE, MVT::i16, LegalizeAction::Custom);
+  // setOperationAction(ISD::STORE, MVT::i8, LegalizeAction::Custom);
+  setOperationAction({ISD::Constant}, {MVT::i8,MVT::i16}, LegalizeAction::Custom);
 
   // setTargetDAGCombine({ISD::LOAD});
 
@@ -371,6 +379,9 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
   else if (opcode == ISD::STORE) {
     return LowerStore(cast<StoreSDNode>(node.getNode()), dbgLoc, DAG);
   }
+  else if (opcode == ISD::Constant) {
+    return LowerConstant(node, dbgLoc, DAG);
+  }
 
   return TargetLowering::LowerOperation(node, DAG);
 }
@@ -379,6 +390,28 @@ SDValue llvm::WDCTargetLowering::LowerGlobalAddress(GlobalAddressSDNode * glblAd
   const auto glblAddr = glblAddrNd->getGlobal();
   const auto addrValT = glblAddrNd->getValueType(0);
   return DAG.getNode(WDCISD::Wrapper, dbgLoc, addrValT, DAG.getTargetGlobalAddress(glblAddr, dbgLoc, addrValT));
+}
+
+static SDValue getSetMFlag(SelectionDAG & DAG, unsigned val, const SDLoc & dbgLoc) {
+  const auto setImm = DAG.getConstant(val, dbgLoc, MVT::i1);
+  return DAG.getNode(WDCISD::SETM, dbgLoc, MVT::i1, setImm);
+}
+
+SDValue llvm::WDCTargetLowering::LowerConstant(SDValue cnstSDVal, const SDLoc & dbgLoc, SelectionDAG & DAG) const {
+  const auto cnstVlTy = cnstSDVal->getValueType(0);
+  const auto cnstNd = cast<ConstantSDNode>(cnstSDVal.getNode());
+  if (cnstVlTy == MVT::i8) {
+    const auto targetConst = DAG.getTargetConstant(cnstNd->getAPIntValue(), dbgLoc, MVT::i8);
+    const auto setM = getSetMFlag(DAG, 1, dbgLoc);
+    return DAG.getNode(WDCISD::LDAi, dbgLoc, MVT::i8, {targetConst, setM});
+  }
+  if (cnstVlTy == MVT::i16) {
+    const auto targetConst = DAG.getTargetConstant(cnstNd->getAPIntValue(), dbgLoc, MVT::i16);
+    const auto setM = getSetMFlag(DAG, 0, dbgLoc);
+    return DAG.getNode(WDCISD::LDAi, dbgLoc, MVT::i16, {targetConst, setM});
+  }
+
+  return {};
 }
 
 SDValue llvm::WDCTargetLowering::LowerLoad(LoadSDNode * ldNd, const SDLoc & dbgLoc, SelectionDAG & DAG) const {
@@ -399,12 +432,13 @@ SDValue llvm::WDCTargetLowering::LowerLoad(LoadSDNode * ldNd, const SDLoc & dbgL
 }
 
 SDValue llvm::WDCTargetLowering::LowerStore(StoreSDNode * stNd, const SDLoc& dbgLoc, SelectionDAG & DAG) const {
-  const auto valNd = stNd->getValue();
+  const auto valNd = stNd->getValue(); // <-- the thing being stored.
+  const auto valNdValTy = valNd.getValueType(); // <-- the size of the thing being stored.
   const auto addrNd = stNd->getBasePtr();
   const auto chNd = stNd->getChain();
-  const auto valTp = static_cast<ISD::NodeType>(valNd->getOpcode());
+  const auto valNdTy = static_cast<ISD::NodeType>(valNd->getOpcode());
   const auto addrTp = static_cast<ISD::NodeType>(addrNd->getOpcode());
-  if (valTp == ISD::FrameIndex) {
+  if (valNdTy == ISD::FrameIndex) {
     // The value is a FrameIndex, which is an address.  Currently all addresses are 24-bit.  As far as I can
     // tell llvm requires addresses to have a power-of-2 number of bits; so 32 it is.
     if (addrTp == ISD::FrameIndex) {
@@ -422,6 +456,16 @@ SDValue llvm::WDCTargetLowering::LowerStore(StoreSDNode * stNd, const SDLoc& dbg
       SmallVector<SDValue> joinedVals{storeHigh, storeLow};
       return DAG.getTokenFactor(dbgLoc, joinedVals);
     }
+  }
+  
+  if (valNdValTy == MVT::i8) {
+    const auto setM = getSetMFlag(DAG, 1, dbgLoc);
+    return DAG.getNode(WDCISD::STA, dbgLoc, MVT::i8, {chNd, valNd, addrNd, setM});
+  }
+
+  if (valNdValTy == MVT::i16) {
+    const auto setM = getSetMFlag(DAG, 0, dbgLoc);
+    return DAG.getNode(WDCISD::STA, dbgLoc, MVT::i16, {chNd, valNd, addrNd, setM});
   }
 
   return SDValue{};

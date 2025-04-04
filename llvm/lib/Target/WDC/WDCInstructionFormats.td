@@ -65,8 +65,8 @@ class InstImm16<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> patt
   let m_addrMode = WDCAddressModeImmediate;
 }
 
-class InstImm8<bits<8> opcode, string asmstr> 
-: Inst<opcode, (outs), (ins UnsignedImm8Operand:$const), !strconcat(asmstr, "\t$const"), []> {
+class InstImm8<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern> 
+: Inst<opcode, outs, ins, asmstr, pattern> {
   field bits<16> Inst;
   bits<8> const;
   let Size = 2;
@@ -141,6 +141,7 @@ def SignedImm16Pattern  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue());
 def UnsignedImm16Pattern : PatLeaf<(imm), [{ return isUInt<16>(N->getZExtValue()); }]>;
 def SignedImm8Pattern : PatLeaf<(imm), [{ return isInt<8>(N->getSExtValue()); }]>;
 def OnePattern : PatLeaf<(i16 imm), [{ return N->isOne(); }]>;
+def OnePatternBit : PatLeaf<(i1 imm), [{ return N->isOne(); }]>;
 
 let WantsRoot = true in
 def frameIndexPattern : ComplexPattern<i32, 1, "SelectFrameIndex", [frameindex]>;
@@ -237,18 +238,6 @@ class WDCStatusControlInstruction<bits<8> opcode, string asmstr, RegisterClass d
 class WDCStackInstruction<bits<8> opcode, string asmstr>
 : InstImpl<opcode, (outs), (ins), asmstr, []>
 {
-}
-
-class WDCStoreInstructionStackRelative<bits<8> opcode, string asmstr>
-: InstStkRel<
-  opcode,
-  (outs),
-  (ins AccumulatorRegisterClass:$accumulator, StackOffsetOperand:$spoffset),
-  !strconcat(asmstr, "\t$spoffset"),
-  [(store AccumulatorRegisterClass:$accumulator, frameIndexPattern:$spoffset)]>
-{
-  let DisableEncoding = "$accumulator";
-  let mayStore = 1;
 }
 
 class WDCLoadInstructionStackRelative<

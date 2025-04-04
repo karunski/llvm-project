@@ -79,9 +79,10 @@ const WDCRegisterInfo &WDCInstrInfo::getRegisterInfo() const {
 }
 
 bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
-MachineBasicBlock &MBB = *MI.getParent();
+  MachineBasicBlock &MBB = *MI.getParent();
+  const auto instr = static_cast<decltype(WDC::RetRTL)>(MI.getDesc().getOpcode());
 
-  switch (MI.getDesc().getOpcode()) {
+  switch (instr) {
   default:
     return false;
   case WDC::RetRTL:
@@ -93,20 +94,24 @@ MachineBasicBlock &MBB = *MI.getParent();
   case WDC::ADDsr:
     expandADD(MBB, MI, WDC::ADCsr);
     break;
-  case WDC::SUBsr:
-    expandSUB(MBB, MI, WDC::SBCsr);
-    break;
   case WDC::ROTL:
     expandROTL(MBB, MI);
     break;
+  case WDC::SetM:
+    expandSetM(MBB, MI);
+    break;
   case WDC::SRA:
     expandSRA(MBB, MI);
+    break;
+  case WDC::SUBsr:
+    expandSUB(MBB, MI, WDC::SBCsr);
     break;
   case WDC::TCA:
     expandTCA(MBB, MI);
     break;
   case WDC::LEAsr:
     expandLEA(MBB, MI);
+    break;
   }
 
   MBB.erase(MI);
@@ -117,13 +122,12 @@ void llvm::WDCInstrInfo::adjustStackPtr(unsigned SP, int64_t amount,
                                           MachineBasicBlock &MBB,
                                           MachineBasicBlock::iterator I) const {
   const auto debugLoc = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
-  // unsigned ADDu = Cpu0::ADDu;
-  // unsigned ADDiu = Cpu0::ADDiu;
 
   assert(isInt<16>(amount) && "stack adjustment amount was too great");
   if (amount < 0) {
     amount = -amount;
     BuildMI(MBB, I, debugLoc, get(WDC::SEC));
+    BuildMI(MBB, I, debugLoc, get(WDC::REP), WDC::P).addImm(0x20);
     BuildMI(MBB, I, debugLoc, get(WDC::TSC));
     BuildMI(MBB, I, debugLoc, get(WDC::SBCi), WDC::A).addReg(WDC::A).addImm(amount);
     BuildMI(MBB, I, debugLoc, get(WDC::TCS));
@@ -131,6 +135,7 @@ void llvm::WDCInstrInfo::adjustStackPtr(unsigned SP, int64_t amount,
   else
   {
     BuildMI(MBB, I, debugLoc, get(WDC::CLC));
+    BuildMI(MBB, I, debugLoc, get(WDC::REP), WDC::P).addImm(0x20);
     BuildMI(MBB, I, debugLoc, get(WDC::TSC));
     BuildMI(MBB, I, debugLoc, get(WDC::ADCi), WDC::A).addReg(WDC::A).addImm(amount);
     BuildMI(MBB, I, debugLoc, get(WDC::TCS));
@@ -184,6 +189,18 @@ MachineInstr *llvm::WDCInstrInfo::foldMemoryOperandImpl(
 void llvm::WDCInstrInfo::expandRTL(MachineBasicBlock &MBB,
                                      MachineBasicBlock::iterator I) const {
   BuildMI(MBB, I, I->getDebugLoc(), get(WDC::RTL));
+}
+
+void llvm::WDCInstrInfo::expandSetM(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const {
+  const auto dbgLoc = I->getDebugLoc();
+  const auto flagOprnd = I->getOperand(1);
+  const auto flagVal = flagOprnd.getImm();
+  if (flagVal) {
+    BuildMI(MBB, I, dbgLoc, get(WDC::SEP)).add(I->getOperand(0)).addImm(0b00100000);
+  }
+  else {
+    BuildMI(MBB, I, dbgLoc, get(WDC::REP)).add(I->getOperand(0)).addImm(0b00100000);
+  }
 }
 
 void llvm::WDCInstrInfo::expandADD(MachineBasicBlock &MBB,

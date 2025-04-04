@@ -72,7 +72,10 @@ namespace llvm {
       SUBsr,
       ORAsr,
       LDAdpil,
+      LDAi,
       LEA,
+      STA,
+      SETM,
     };
   }
 
@@ -180,6 +183,9 @@ namespace llvm {
 
     SDValue LowerGlobalAddress(GlobalAddressSDNode *glblAddrNd, const SDLoc & dbgLoc,
                                SelectionDAG &DAG) const;
+
+    SDValue LowerConstant(SDValue csntNd, const SDLoc &dbgLoc,
+                          SelectionDAG &DAG) const;
 
     SDValue LowerLoad(LoadSDNode *ldNd, const SDLoc &dbgLoc,
                       SelectionDAG &DAG) const;

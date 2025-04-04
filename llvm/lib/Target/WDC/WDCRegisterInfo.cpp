@@ -56,7 +56,7 @@ getReservedRegs(const MachineFunction &MF) const {
 //@getReservedRegs body {
   static const uint16_t ReservedCPURegs[] = {
     //WDC::ZERO, WDC::AT, WDC::SP, WDC::LR, /*WDC::SW, */WDC::PC
-    /*WDC::P, */WDC::PC, WDC::S
+    WDC::P, WDC::PC, WDC::S
   };
   BitVector Reserved(getNumRegs());
 
