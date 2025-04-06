@@ -132,7 +132,8 @@ void llvm::WDCInstrInfo::adjustStackPtr(unsigned SP, int64_t amount,
     else {
       amount = -amount;
       BuildMI(MBB, I, debugLoc, get(WDC::SEC));
-      BuildMI(MBB, I, debugLoc, get(WDC::REP), WDC::P).addImm(0x20);
+      // only if in 8-bit A mode 
+      //BuildMI(MBB, I, debugLoc, get(WDC::REP), WDC::P).addImm(0x20);
       BuildMI(MBB, I, debugLoc, get(WDC::TSC));
       BuildMI(MBB, I, debugLoc, get(WDC::SBCi), WDC::A).addReg(WDC::A).addImm(amount);
       BuildMI(MBB, I, debugLoc, get(WDC::TCS));
@@ -146,7 +147,8 @@ void llvm::WDCInstrInfo::adjustStackPtr(unsigned SP, int64_t amount,
     }
     else {
       BuildMI(MBB, I, debugLoc, get(WDC::CLC));
-      BuildMI(MBB, I, debugLoc, get(WDC::REP), WDC::P).addImm(0x20);
+      // ONly if in 8-bit a mode.
+      //BuildMI(MBB, I, debugLoc, get(WDC::REP), WDC::P).addImm(0x20);
       BuildMI(MBB, I, debugLoc, get(WDC::TSC));
       BuildMI(MBB, I, debugLoc, get(WDC::ADCi), WDC::A).addReg(WDC::A).addImm(amount);
       BuildMI(MBB, I, debugLoc, get(WDC::TCS));
@@ -259,18 +261,33 @@ void llvm::WDCInstrInfo::expandLEA(MachineBasicBlock &MBB, MachineBasicBlock::it
 
 void llvm::WDCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                      MachineBasicBlock::iterator MI,
-                                     const DebugLoc &DL, Register DestReg,
-                                     Register SrcReg, bool KillSrc,
+                                     const DebugLoc &DL, const Register DestReg,
+                                     const Register SrcReg, bool KillSrc,
                                      bool RenamableDest,
                                      bool RenamableSrc) const {
+  const auto & dbgLoc = MI->getDebugLoc();
   if (SrcReg == WDC::P) {
     // push 8-bit status register on to the stack
-    BuildMI(MBB, MI, MI->getDebugLoc(), get(WDC::PHP));
+    BuildMI(MBB, MI, dbgLoc, get(WDC::PHP));
     if (DestReg == WDC::A) {
       // Set the Accumulator to 8 bits; pull the byte off the stack, and reset the accumulator back to 16 bit.
-      BuildMI(MBB, MI, MI->getDebugLoc(), get(WDC::SEP)).addImm(0b00100000);
-      BuildMI(MBB, MI, MI->getDebugLoc(), get(WDC::PLA));
-      BuildMI(MBB, MI, MI->getDebugLoc(), get(WDC::REP)).addImm(0b00100000);
+      BuildMI(MBB, MI, dbgLoc, get(WDC::SEP)).addImm(0b00100000);
+      BuildMI(MBB, MI, dbgLoc, get(WDC::PLA));
+      BuildMI(MBB, MI, dbgLoc, get(WDC::REP)).addImm(0b00100000);
+      return;
+    }
+  }
+  
+  if (SrcReg == WDC::C) {
+    if (DestReg == WDC::X) {
+      BuildMI(MBB, MI, dbgLoc, get(WDC::TAX));
+      return;
+    }
+  }
+
+  if (SrcReg == WDC::X) {
+    if (DestReg == WDC::C) {
+      BuildMI(MBB, MI, dbgLoc, get(WDC::TXA));
       return;
     }
   }

@@ -57,10 +57,14 @@ let mayLoad=1 in {
 }
 //def LDAi  : WDCLoadInstructionImmediate<0xA9, "LDA", UnsignedImm16Operand>;
 let Defs=[A],Uses=[M],hasSideEffects=false in {
-  def LDAi : InstImm16<0xA9, (outs RegsA16:$dst), (ins UnsignedImm16Operand:$constant),
-                      "LONGA ON\n\tLDA\t$constant", [(set RegsA16:$dst, (load imm:$constant))]>;
+  // def LDAi : InstImm16<0xA9, (outs RegsA16:$dst), (ins UnsignedImm16Operand:$constant),
+  //                     "LONGA ON\n\tLDA\t$constant", [(set RegsA16:$dst, (load imm:$constant))]>;
   def LDAi8 : InstImm8<0xA9, (outs RegsA8:$dst), (ins UnsignedImm8Operand:$const),
                       "LONGA OFF\n\tLDA\t$const", [(set RegsA8:$dst, (load imm:$const))]>;
+}
+let Defs=[C],Uses=[M],mayLoad=1,hasSideEffects=true,isReMaterializable=1 in {
+  def LDAi : InstImm16<0xA9, (outs), (ins UnsignedImm16Operand:$constant),
+                       "LDA\t$constant", [(set C, imm:$constant)]>;
 }
 
 def LDAsr  : WDCLoadInstructionStackRelative<0xA3, "LDA">;
@@ -136,12 +140,19 @@ let mayStore=true, Uses=[M],hasSideEffects=false in {
   def STZdp : InstDrctPg<0x64, (outs), (ins OprndAddr8:$addr),  "STZ\t$addr", [(store PatternZero16, PatternDp:$addr)]>;
 }
 
+let Defs=[X],Uses=[C] in {
+  def TAX : InstImpl<0xAA, (outs), (ins), "TAX", [(set X, C)]>;
+}
 // "Transfer Carry to least significant bit of A" == ROL A 
 def TCA : InstPseudo<(outs RegsA16:$dst), (ins StatusReg:$src), []>;
 def TSC : WDCTransferInstruction<0x3B, (outs RegsA16:$dst), (ins), "TSC">;
 def TDC : WDCTransferInstruction<0x7D, (outs RegsA16:$dst), (ins), "TDC">;
 def TCS : WDCTransferInstruction<0x1B, (outs), (ins RegsA16:$src), "TCS">;
 def TCD : WDCTransferInstruction<0x5B, (outs), (ins RegsA16:$src), "TCD">;
+
+let Defs=[C],Uses=[X] in {
+  def TXA : InstImpl<0x8A, (outs), (ins), "TXA", [(set C, X)]>;
+}
 
 def XBA : InstImpl<0xEB, (outs RegsA16:$dst), (ins RegsA16:$src),
                                 "XBA", [(set RegsA16:$dst, (bswap RegsA16:$src))]>;
