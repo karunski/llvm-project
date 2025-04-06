@@ -78,7 +78,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
     : TargetLowering{TM}, Subtarget{STI}, ABI{TM.getABI()} {
   //@WDCSETargetLowering body {
   // Set up the register classes
-  addRegisterClass(MVT::i16, &WDC::AccumulatorRegisterClassRegClass);
+  addRegisterClass(MVT::i16, &WDC::RegsA16RegClass);
   addRegisterClass(MVT::i8, &WDC::RegsA8RegClass);
   addRegisterClass(MVT::i16, &WDC::IndexRegsRegClass);
   addRegisterClass(MVT::i8, &WDC::StatusRegRegClass);
@@ -97,11 +97,11 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::XOR,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SETCC, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::GlobalAddress, MVT::i32, LegalizeAction::Custom);
-  setOperationAction(ISD::LOAD, MVT::i16, LegalizeAction::Custom);
-  setOperationAction({ISD::STORE}, {MVT::i32,MVT::i16,MVT::i8}, LegalizeAction::Custom);
+  //setOperationAction(ISD::LOAD, MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::STORE, MVT::i32, LegalizeAction::Custom);
   // setOperationAction(ISD::STORE, MVT::i16, LegalizeAction::Custom);
   // setOperationAction(ISD::STORE, MVT::i8, LegalizeAction::Custom);
-  setOperationAction({ISD::Constant}, {MVT::i8,MVT::i16}, LegalizeAction::Custom);
+  //setOperationAction({ISD::Constant}, {MVT::i8,MVT::i16}, LegalizeAction::Custom);
 
   // setTargetDAGCombine({ISD::LOAD});
 
@@ -393,8 +393,7 @@ SDValue llvm::WDCTargetLowering::LowerGlobalAddress(GlobalAddressSDNode * glblAd
 }
 
 static SDValue getSetMFlag(SelectionDAG & DAG, unsigned val, const SDLoc & dbgLoc) {
-  const auto setImm = DAG.getConstant(val, dbgLoc, MVT::i1);
-  return DAG.getNode(WDCISD::SETM, dbgLoc, MVT::i1, setImm);
+  return DAG.getConstant(val, dbgLoc, MVT::i1);
 }
 
 SDValue llvm::WDCTargetLowering::LowerConstant(SDValue cnstSDVal, const SDLoc & dbgLoc, SelectionDAG & DAG) const {

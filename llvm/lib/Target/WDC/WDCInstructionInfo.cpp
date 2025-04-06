@@ -125,20 +125,32 @@ void llvm::WDCInstrInfo::adjustStackPtr(unsigned SP, int64_t amount,
 
   assert(isInt<16>(amount) && "stack adjustment amount was too great");
   if (amount < 0) {
-    amount = -amount;
-    BuildMI(MBB, I, debugLoc, get(WDC::SEC));
-    BuildMI(MBB, I, debugLoc, get(WDC::REP), WDC::P).addImm(0x20);
-    BuildMI(MBB, I, debugLoc, get(WDC::TSC));
-    BuildMI(MBB, I, debugLoc, get(WDC::SBCi), WDC::A).addReg(WDC::A).addImm(amount);
-    BuildMI(MBB, I, debugLoc, get(WDC::TCS));
+    if (amount == -2) {
+        BuildMI(MBB, I, debugLoc, get(WDC::PHA));
+        BuildMI(MBB, I, debugLoc, get(WDC::TSC));
+    }
+    else {
+      amount = -amount;
+      BuildMI(MBB, I, debugLoc, get(WDC::SEC));
+      BuildMI(MBB, I, debugLoc, get(WDC::REP), WDC::P).addImm(0x20);
+      BuildMI(MBB, I, debugLoc, get(WDC::TSC));
+      BuildMI(MBB, I, debugLoc, get(WDC::SBCi), WDC::A).addReg(WDC::A).addImm(amount);
+      BuildMI(MBB, I, debugLoc, get(WDC::TCS));
+    }
   }
   else
   {
-    BuildMI(MBB, I, debugLoc, get(WDC::CLC));
-    BuildMI(MBB, I, debugLoc, get(WDC::REP), WDC::P).addImm(0x20);
-    BuildMI(MBB, I, debugLoc, get(WDC::TSC));
-    BuildMI(MBB, I, debugLoc, get(WDC::ADCi), WDC::A).addReg(WDC::A).addImm(amount);
-    BuildMI(MBB, I, debugLoc, get(WDC::TCS));
+    if (amount == 2)
+    {
+      BuildMI(MBB, I, debugLoc, get(WDC::PLA));
+    }
+    else {
+      BuildMI(MBB, I, debugLoc, get(WDC::CLC));
+      BuildMI(MBB, I, debugLoc, get(WDC::REP), WDC::P).addImm(0x20);
+      BuildMI(MBB, I, debugLoc, get(WDC::TSC));
+      BuildMI(MBB, I, debugLoc, get(WDC::ADCi), WDC::A).addReg(WDC::A).addImm(amount);
+      BuildMI(MBB, I, debugLoc, get(WDC::TCS));
+    }
   }
   // else { // Expand immediate that doesn't fit in 16-bit.
   //   unsigned Reg = loadImmediate(Amount, MBB, I, DL, nullptr);

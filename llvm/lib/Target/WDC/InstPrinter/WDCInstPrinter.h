@@ -61,6 +61,8 @@ private:
 
   void printDirectPageIndirect(const MCInst *MI, int opNum, raw_ostream &os);
 
+  void printDirectPage(const MCInst *MI, int opNum, raw_ostream &os);
+
   // #if CH >= CH7_1
   void printMemOperandEA(const MCInst *MI, int opNum, raw_ostream &O);
 //#endif

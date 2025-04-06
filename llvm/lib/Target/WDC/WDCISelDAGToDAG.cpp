@@ -79,6 +79,43 @@ class WDCDAGToDAGISel : public SelectionDAGISel {
     bool SelectAddr(SDNode *Parent, SDValue N, SDValue &Base, SDValue &Offset);
 
     bool SelectFrameIndex(SDNode *Parent, SDValue addressvalue, SDValue &Base);
+    bool SelectNearGlobal(SDValue N, SDValue &addr) {
+      // if N is a "near" pointer it should be selected here.
+      // TODO: implement a "near" address space?
+      return false;
+    }
+    
+    bool SelectNearIndirect(SDNode *Parent, SDValue addressvalue, SDValue &Base) {
+      // TODO: needs 'near' address space.
+      return false;
+    }
+
+    bool SelectDirectPageIndirectLong(SDNode *Parent, SDValue LoadSDValue, SDValue &dpFrameIndex) {
+      // TODO: figure out what matches this mode
+      const auto &loadNode = *cast<LoadSDNode>(LoadSDValue.getNode());
+      loadNode.getOperand(1);
+      return false;
+    }
+
+    bool SelectDirectPage(SDNode * Parent, SDValue frmIdxSDVal, SDValue &addr) {
+      const auto & frmIdxNd = *cast<FrameIndexSDNode>(frmIdxSDVal.getNode());
+      const auto parentOp = static_cast<ISD::NodeType>(Parent->getOpcode());
+      if (parentOp != ISD::STORE) { return false; }
+      addr = CurDAG->getTargetFrameIndex(frmIdxNd.getIndex(), MVT::i8);
+      return true;
+    }
+
+    bool SelectGlobalIndirect(SDValue N, SDValue &addr) {
+      const auto nodeType = static_cast<ISD::NodeType>(N.getOpcode());
+      if (nodeType != ISD::LOAD) { return false; }
+      const auto & loadNode = *cast<LoadSDNode>(N.getNode());
+      const auto & basePtr = loadNode.getBasePtr();
+      if (loadNode.getAddressingMode() != ISD::UNINDEXED) { return false; }
+      const auto basePtrType = static_cast<ISD::NodeType>(basePtr.getOpcode());
+      if (basePtrType != ISD::GlobalAddress) { return false; }
+      addr = basePtr;
+      return true;
+    }
 
     // getImm - Return a target constant with the specified value.
     inline SDValue getImm(const SDNode *Node, unsigned Imm) {

@@ -21,9 +21,10 @@ include "WDCPseudoInstructions.td"
 
 def RTL    : WDCReturnInstruction<0x6b, "RTL">;
 
-def CLC    : WDCStatusControlInstruction<0x18, "CLC", CarryRegisterClass, []>;
-
-def SEC    : WDCStatusControlInstruction<0x38, "SEC", CarryRegisterClass, []>;
+let Defs=[Carry], isReMaterializable=1, isAsCheapAsAMove=1 in {
+def CLC    : InstImpl<0x18, (outs), (ins), "CLC", []>;
+def SEC    : InstImpl<0x38, (outs), (ins), "SEC", []>;
+}
 
 let isAdd = 1 in {
   def ADCi  : WDCAddSubCarryInstructionImmediate<0x69, adde, "ADC", UnsignedImm16Operand>;
@@ -35,38 +36,42 @@ let isAdd = 1 in {
 def ANDi : WDCLogicInstructionImmediate<0x29, and, "AND", UnsignedImm16Operand>;
 def ANDsr : InstructionLogicStackRelative<0x23, "AND", ANDsrNode>;
 
-def ASL : InstImpl<0x0A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src), 
-                                 "ASL\tA", [(set AccumulatorRegisterClass:$dst, (shl AccumulatorRegisterClass:$src, OnePattern))]>;
+def ASL : InstImpl<0x0A, (outs RegsA16:$dst), (ins RegsA16:$src), 
+                                 "ASL\tA", [(set RegsA16:$dst, (shl RegsA16:$src, OnePattern))]>;
 
-def CMPi : InstImm16<0xc9, (outs StatusReg:$sr), (ins AccumulatorRegisterClass:$src, UnsignedImm16Operand:$constant),
+def CMPi : InstImm16<0xc9, (outs StatusReg:$sr), (ins RegsA16:$src, UnsignedImm16Operand:$constant),
                                    "CMP\t$constant", []>;
 def CMPsr : InstStkRel<0xc3, (outs StatusReg:$sr),
-                                        (ins AccumulatorRegisterClass:$src, StackOffsetOperand:$spoffset),
+                                        (ins RegsA16:$src, StackOffsetOperand:$spoffset),
                                         "CMP\t$spoffset", []>;
 
 def EORi : WDCLogicInstructionImmediate<0x49, xor, "EOR", UnsignedImm16Operand>;
 def EORsr : InstructionLogicStackRelative<0x43, "EOR", EORsrNode>;
 
-def LDAal : InstAbsLong<0xAF, (outs AccumulatorRegisterClass:$dst), (ins OprndAbsLong:$src),
-                        "LDA\t$src", [(set AccumulatorRegisterClass:$dst, (load (Wrapper (tglobaladdr:$src))))]>;
-def LDAdpil : InstDrctPgIndrctLong<0xA7, (outs AccumulatorRegisterClass:$dst), (ins OprndDrctPgIndrct:$spoffset),
-                        "LDA\t$spoffset",
-                        [(set AccumulatorRegisterClass:$dst, (LDAdpilNode frameIndexPattern:$spoffset))]>;
+let mayLoad=1 in {
+  def LDAal : InstAbsLong<0xAF, (outs RegsA16:$dst), (ins OprndAbsLong:$src),
+                          "LDA\t$src", [(set RegsA16:$dst, (load (Wrapper (tglobaladdr:$src))))]>;
+  def LDAdpil : InstDrctPg<0xA7, (outs RegsA16:$dst), (ins OprndDrctPgIndrct:$addr),
+                          "LDA\t$addr",
+                          [(set RegsA16:$dst, (LDAdpilNode frameIndexPattern:$addr))]>;
+}
 //def LDAi  : WDCLoadInstructionImmediate<0xA9, "LDA", UnsignedImm16Operand>;
-def LDAi : InstImm16<0xA9, (outs AccumulatorRegisterClass:$dst), (ins UnsignedImm16Operand:$constant, FlagsM:$m),
-                     "LONGA ON\n\tLDA\t$constant", [(set AccumulatorRegisterClass:$dst, (LDAiNode timm:$constant, FlagsM:$m))]>;
-def LDAi8 : InstImm8<0xA9, (outs RegsA8:$dst), (ins UnsignedImm8Operand:$const, FlagsM:$m),
-                     "LONGA OFF\n\tLDA\t$const", [(set RegsA8:$dst, (LDAiNode timm:$const, FlagsM:$m))]>;
+let Defs=[A],Uses=[M],hasSideEffects=false in {
+  def LDAi : InstImm16<0xA9, (outs RegsA16:$dst), (ins UnsignedImm16Operand:$constant),
+                      "LONGA ON\n\tLDA\t$constant", [(set RegsA16:$dst, (load imm:$constant))]>;
+  def LDAi8 : InstImm8<0xA9, (outs RegsA8:$dst), (ins UnsignedImm8Operand:$const),
+                      "LONGA OFF\n\tLDA\t$const", [(set RegsA8:$dst, (load imm:$const))]>;
+}
 
 def LDAsr  : WDCLoadInstructionStackRelative<0xA3, "LDA">;
 
 // Pseudo instruction to copy the address of a stack slot into the accumulator
-def LEAsr  : InstPseudo<(outs AccumulatorRegisterClass:$dst), (ins StackOffsetOperand:$frameIndex),
-                        [(set AccumulatorRegisterClass:$dst, (LEANode frameIndexPattern:$frameIndex))]>;
+def LEAsr  : InstPseudo<(outs RegsA16:$dst), (ins StackOffsetOperand:$frameIndex),
+                        [(set RegsA16:$dst, (LEANode frameIndexPattern:$frameIndex))]>;
 
-def LSR : InstImpl<0x4A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+def LSR : InstImpl<0x4A, (outs RegsA16:$dst), (ins RegsA16:$src),
                                 "LSR\tA", 
-                                [(set AccumulatorRegisterClass:$dst, (srl AccumulatorRegisterClass:$src, OnePattern))]>;
+                                [(set RegsA16:$dst, (srl RegsA16:$src, OnePattern))]>;
 
 def SUBsr : ADDSUBStackRelativePseudo<SUBsrNode>;
 
@@ -76,68 +81,83 @@ def SBCsr  : WDCAddSubCarryInstructionStackRelative<0xE3, subc, "SBC">;
 def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
 def ORAsr  : InstructionLogicStackRelative<0x03, "ORA", ORAsrNode>;
 
+let Uses=[M,C] in {
+  def PHA : InstImpl<0x48, (outs), (ins), "PHA", []>;
+} 
 def PHD : WDCStackInstruction<0x0B, "PHD">;
 def PHP : WDCStackInstruction<0x08, "PHP">;
-def PLA : WDCStackInstruction<0x68, "PLA">;
+let Uses=[M],Defs=[C] in {
+  def PLA : InstImpl<0x68, (outs), (ins), "PLA", []>;
+}
 def PLB : WDCStackInstruction<0xAB, "PLB">;
 def PLD : WDCStackInstruction<0x2B, "PLD">;
 def PLP : WDCStackInstruction<0x28, "PLP">;
 
-def ROL : InstImpl<0x2a, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+def ROL : InstImpl<0x2a, (outs RegsA16:$dst), (ins RegsA16:$src),
                                 "ROL\tA", []>;
-def ROR : InstImpl<0x6A, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
+def ROR : InstImpl<0x6A, (outs RegsA16:$dst), (ins RegsA16:$src),
                                 "ROR\tA", []>;
 
-def ROTL : InstPseudo<(outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
-                         [(set AccumulatorRegisterClass:$dst, (rotl AccumulatorRegisterClass:$src, OnePattern))]>;
+def ROTL : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src),
+                         [(set RegsA16:$dst, (rotl RegsA16:$src, OnePattern))]>;
 
-let isAsCheapAsAMove=1 in {
+let Defs=[M],hasSideEffects=false in {
   def REP : InstImm8<0xC2, (outs StatusReg:$P), (ins UnsignedImm8Operand:$const), "REP\t$const", []>;
   def SEP : InstImm8<0xE2, (outs StatusReg:$P), (ins UnsignedImm8Operand:$const), "SEP\t$const", []>;
 }
 
-let isAsCheapAsAMove=1 in {
-  def SetM : InstPseudo<(outs FlagsM:$m), (ins Operand<i1>:$val), [(set FlagsM:$m, (SETMNode imm:$val))]>;
+let isAsCheapAsAMove=1,Defs=[M],hasSideEffects=false in {
+  def SetM : InstPseudo<(outs), (ins Operand<i1>:$val), []>;
 }
 
 let isReturn=1, isTerminator=1, isBarrier=1, hasCtrlDep=1 in {
   def RetRTL : InstPseudo<(outs), (ins), [(WDCRetNode)]>;
 }
 
-def SRA : InstPseudo<(outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
-                         [(set AccumulatorRegisterClass:$dst, (sra AccumulatorRegisterClass:$src, OnePattern))]>;
+def SRA : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src),
+                         [(set RegsA16:$dst, (sra RegsA16:$src, OnePattern))]>;
 
-let mayStore=true in {
-  def STAsr  : InstStkRel<0x83, (outs), (ins AccumulatorRegisterClass:$accumulator, StackOffsetOperand:$spoffset, FlagsM:$m),
+let mayStore=true, Uses=[C,M],hasSideEffects=false in {
+  def STAa   : InstAbs<0x8D,     (outs), (ins OprndAddr16:$addr),  "STA\t$addr", [(store C, NearGlobalPattern:$addr)]>;
+  def STAal  : InstAbsLong<0x8F, (outs), (ins OprndAbsLong:$addr), "STA\t$addr", [(store C, globaladdr:$addr)]>;
+  def STAdp  : InstDrctPg<0x85,  (outs), (ins OprndAddr8:$addr),   "STA\t$addr", [(store C, PatternDp:$addr)]>;
+  def STAdpi : InstDrctPg<0x92,  (outs), (ins OprndAddr8:$addr),   "STA\t($addr)", [(store C, NearIndirPattern:$addr)]>;
+  def STAdpil : InstDrctPg<0x87, (outs), (ins OprndAddr8:$addr),   "STA\t[$addr]", [(store C, PatternDpil:$addr)]>;
+  def STAsr  : InstStkRel<0x83,  (outs), (ins RegsA16:$accumulator, StackOffsetOperand:$spoffset),
                           "STA\t$spoffset", 
-                          [(STANode AccumulatorRegisterClass:$accumulator, frameIndexPattern:$spoffset, FlagsM:$m)]>;
-  def STAsr8 : InstStkRel<0x83, (outs), (ins RegsA8:$src, StackOffsetOperand:$spoffset, FlagsM:$m),
-                          "STA\t$spoffset", 
-                          [(STANode RegsA8:$src, frameIndexPattern:$spoffset, FlagsM:$m)]>;
+                          [(STANode RegsA16:$accumulator, frameIndexPattern:$spoffset, M)]>;
+  // def STAsr8 : InstStkRel<0x83, (outs), (ins RegsA8:$src, StackOffsetOperand:$spoffset),
+  //                         "STA\t$spoffset", 
+  //                         [(STANode RegsA8:$src, frameIndexPattern:$spoffset, M)]>;
+}
+
+let mayStore=true, Uses=[M],hasSideEffects=false in {
+  def STZa  : InstAbs<0x9C,    (outs), (ins OprndAddr16:$addr), "STZ\t$addr", [(store PatternZero16, NearGlobalPattern:$addr)]>;
+  def STZdp : InstDrctPg<0x64, (outs), (ins OprndAddr8:$addr),  "STZ\t$addr", [(store PatternZero16, PatternDp:$addr)]>;
 }
 
 // "Transfer Carry to least significant bit of A" == ROL A 
-def TCA : InstPseudo<(outs AccumulatorRegisterClass:$dst), (ins StatusReg:$src), []>;
-def TSC : WDCTransferInstruction<0x3B, (outs AccumulatorRegisterClass:$dst), (ins), "TSC">;
-def TDC : WDCTransferInstruction<0x7D, (outs AccumulatorRegisterClass:$dst), (ins), "TDC">;
-def TCS : WDCTransferInstruction<0x1B, (outs), (ins AccumulatorRegisterClass:$src), "TCS">;
-def TCD : WDCTransferInstruction<0x5B, (outs), (ins AccumulatorRegisterClass:$src), "TCD">;
+def TCA : InstPseudo<(outs RegsA16:$dst), (ins StatusReg:$src), []>;
+def TSC : WDCTransferInstruction<0x3B, (outs RegsA16:$dst), (ins), "TSC">;
+def TDC : WDCTransferInstruction<0x7D, (outs RegsA16:$dst), (ins), "TDC">;
+def TCS : WDCTransferInstruction<0x1B, (outs), (ins RegsA16:$src), "TCS">;
+def TCD : WDCTransferInstruction<0x5B, (outs), (ins RegsA16:$src), "TCD">;
 
-def XBA : InstImpl<0xEB, (outs AccumulatorRegisterClass:$dst), (ins AccumulatorRegisterClass:$src),
-                                "XBA", [(set AccumulatorRegisterClass:$dst, (bswap AccumulatorRegisterClass:$src))]>;
+def XBA : InstImpl<0xEB, (outs RegsA16:$dst), (ins RegsA16:$src),
+                                "XBA", [(set RegsA16:$dst, (bswap RegsA16:$src))]>;
 
 // Small immediates
 def : Pat<(globaladdr:$addr), (imm:$addr)>;
 // def : Pat<(i16 SignedImm16Pattern:$in), (LDAi imm:$in)>;
-def : Pat<(seteq AccumulatorRegisterClass:$src, UnsignedImm16Pattern:$const), (
-  ANDi (LSR (COPY_TO_REGCLASS (CMPi AccumulatorRegisterClass:$src, imm:$const), AccumulatorRegisterClass)), 1)>;
+def : Pat<(seteq RegsA16:$src, UnsignedImm16Pattern:$const), (
+  ANDi (LSR (COPY_TO_REGCLASS (CMPi RegsA16:$src, imm:$const), RegsA16)), 1)>;
 
 // SETCC comparisons between the accumulator and a frame index
 // For seteq (setne comes from this as well)
-def : Pat<(SETCCsrNode AccumulatorRegisterClass:$src, frameIndexPattern:$spoffset, SETEQ),
-          (ANDi (LSR (COPY_TO_REGCLASS (CMPsr AccumulatorRegisterClass:$src, $spoffset), AccumulatorRegisterClass)), 1)>;
-def : Pat<(SETCCsrNode AccumulatorRegisterClass:$src, frameIndexPattern:$spoffset, SETGE),
-          (ANDi (TCA (CMPsr AccumulatorRegisterClass:$src, $spoffset)), 1)>;
+def : Pat<(SETCCsrNode RegsA16:$src, frameIndexPattern:$spoffset, SETEQ),
+          (ANDi (LSR (COPY_TO_REGCLASS (CMPsr RegsA16:$src, $spoffset), RegsA16)), 1)>;
+def : Pat<(SETCCsrNode RegsA16:$src, frameIndexPattern:$spoffset, SETGE),
+          (ANDi (TCA (CMPsr RegsA16:$src, $spoffset)), 1)>;
 
 def mem_ea : Operand<iPTR> {
   let PrintMethod = "printMemOperandEA";

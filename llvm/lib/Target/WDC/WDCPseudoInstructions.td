@@ -1,8 +1,8 @@
 class ADDSUBStackRelativePseudo<SDNode PseudoOpNode>
 : InstPseudo<
-  (outs AccumulatorRegisterClass:$dst),
-  (ins AccumulatorRegisterClass:$src, StackOffsetOperand:$slot),
-  [(set AccumulatorRegisterClass:$dst, (PseudoOpNode AccumulatorRegisterClass:$src, frameIndexPattern:$slot))]
+  (outs RegsA16:$dst),
+  (ins RegsA16:$src, StackOffsetOperand:$slot),
+  [(set RegsA16:$dst, (PseudoOpNode RegsA16:$src, frameIndexPattern:$slot))]
 >
 {
   let hasCtrlDep = 1;
@@ -14,9 +14,9 @@ class ADDSUBStackRelativePseudo<SDNode PseudoOpNode>
 
 class ADDImmediatePseudo
 : InstPseudo<
-  (outs AccumulatorRegisterClass:$dst),
-  (ins AccumulatorRegisterClass:$src, Operand<i16>:$constant),
-  [(set AccumulatorRegisterClass:$dst, (ADDiNode AccumulatorRegisterClass:$src, (i16 imm:$constant)))]
+  (outs RegsA16:$dst),
+  (ins RegsA16:$src, Operand<i16>:$constant),
+  [(set RegsA16:$dst, (ADDiNode RegsA16:$src, (i16 imm:$constant)))]
 >
 {
   let isCommutable = 0;

@@ -123,17 +123,20 @@ void WDCFrameLowering::emitPrologue(MachineFunction &machineFunction,
   // First, compute final stack size.
   uint64_t StackSize = frameInfo.getStackSize();
 
-  // No need to allocate space on the stack.
-  if (StackSize == 0 && !frameInfo.adjustsStack()) return;
-
   // MachineModuleInfo &MMI = machineFunction.getMMI();
   // const MCRegisterInfo *MRI = MMI.getContext().getRegisterInfo();
 
   // Save Direct Page Pointer
   BuildMI(basicBlock, basicBlockIter, debugLoc, instructionInfo.get(WDC::PHD));
 
-  // Adjust stack.
-  instructionInfo.adjustStackPtr(WDC::S, -StackSize, basicBlock, basicBlockIter);
+  // No need to allocate space on the stack.
+  if (StackSize == 0) {
+    BuildMI(basicBlock, basicBlockIter, debugLoc, instructionInfo.get(WDC::TSC));
+  }
+  else {
+    // Adjust stack.
+    instructionInfo.adjustStackPtr(WDC::S, -StackSize, basicBlock, basicBlockIter);
+  }
 
   // Make the direct page point at the same location as the stack pointer. 
   // (C holds the stack pointer after stack adjustment)

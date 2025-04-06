@@ -100,7 +100,13 @@ void llvm::WDCInstPrinter::printStackOffset(const MCInst *MI, int opNum,
 }
 
 void llvm::WDCInstPrinter::printDirectPageIndirect(const MCInst *MI, int opNum, raw_ostream &os) {
-  os << "[" << MI->getOperand(opNum).getImm() << "]";
+  os << "[";
+  printDirectPage(MI, opNum, os);
+  os << "]";
+}
+
+void llvm::WDCInstPrinter::printDirectPage(const MCInst *MI, int opNum, raw_ostream &os) {
+  os << "$" << format_hex_no_prefix(MI->getOperand(opNum).getImm(), 2);
 }
 
 //#if CH >= CH7_1

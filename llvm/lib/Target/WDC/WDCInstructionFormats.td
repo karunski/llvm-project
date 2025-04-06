@@ -94,6 +94,15 @@ class InstStkRel<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pat
   let mayLoad = true;
 }
 
+class InstAbs<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
+: Inst<opcode, outs, ins, asmstr, pattern> {
+  field bits<24> Inst;
+  bits<16> addr;
+  let Size = 3;
+  let Inst{7-0} = Opcode;
+  let Inst{23-8} = addr;
+}
+
 class InstAbsLong<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
 : Inst<opcode, outs, ins, asmstr, pattern> {
   field bits<32> Inst;
@@ -103,13 +112,13 @@ class InstAbsLong<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pa
   let mayLoad = true;
 }
 
-class InstDrctPgIndrctLong<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
+class InstDrctPg<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> pattern>
 : Inst<opcode, outs, ins, asmstr, pattern> {
   field bits<16> Inst;
-  bits<8> DrctPgAddr;
+  bits<8> addr;
   let Size = 2;
   let Inst{7-0} = Opcode;
-  let mayLoad = true;
+  let Inst{15-8} = addr;
 }
 
 def SignedImm16Operand      : Operand<i16> {
@@ -122,6 +131,13 @@ def UnsignedImm16Operand : Operand<i16> {
 
 def SignedImm8Operand : Operand<i8> {
   let DecoderMethod="DecodeSimm8";
+}
+
+def OprndAddr16 : Operand<i16> {
+}
+
+def OprndAddr8 : Operand<i8> {
+  let PrintMethod = "printDirectPage";
 }
 
 def StackOffsetOperand : Operand<iPTR> {
@@ -140,11 +156,19 @@ def OprndAbsLong : Operand<iPTR> {
 def SignedImm16Pattern  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
 def UnsignedImm16Pattern : PatLeaf<(imm), [{ return isUInt<16>(N->getZExtValue()); }]>;
 def SignedImm8Pattern : PatLeaf<(imm), [{ return isInt<8>(N->getSExtValue()); }]>;
+def PatternZero16 : PatLeaf<(i16 imm), [{ return N->isZero(); }]>;
 def OnePattern : PatLeaf<(i16 imm), [{ return N->isOne(); }]>;
 def OnePatternBit : PatLeaf<(i1 imm), [{ return N->isOne(); }]>;
 
 let WantsRoot = true in
-def frameIndexPattern : ComplexPattern<i32, 1, "SelectFrameIndex", [frameindex]>;
+  def frameIndexPattern : ComplexPattern<i32, 1, "SelectFrameIndex", [frameindex]>;
+def NearGlobalPattern : ComplexPattern<i16, 1, "SelectNearGlobal", [globaladdr]>;
+let WantsParent=1 in {
+  def NearIndirPattern  : ComplexPattern<i8,  1, "SelectNearIndirect", [ld]>;
+  def PatternDpil       : ComplexPattern<i8,  1, "SelectDirectPageIndirectLong", [ld]>;
+  def PatternDp         : ComplexPattern<iPTR,  1, "SelectDirectPage", [frameindex]>; 
+}
+def GlobalIndirectPattern : ComplexPattern<i32, 1, "SelectGlobalIndirect", [ld]>;
 
 class WDCLogicInstructionImmediate<
     bits<8>   op,
@@ -154,10 +178,10 @@ class WDCLogicInstructionImmediate<
 >
 : InstImm16<
     op,
-    (outs AccumulatorRegisterClass:$dst),
-    (ins AccumulatorRegisterClass:$accumulator, oprnd:$constant),
+    (outs RegsA16:$dst),
+    (ins RegsA16:$accumulator, oprnd:$constant),
     !strconcat(asmstr, "\t$constant"),
-    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, UnsignedImm16Pattern:$constant))]
+    [(set RegsA16:$dst, (opNode RegsA16:$accumulator, UnsignedImm16Pattern:$constant))]
   >
 {
   let DisableEncoding = "$dst,$accumulator";
@@ -173,10 +197,10 @@ class WDCAddSubCarryInstructionImmediate<
 >
 : InstImm16<
     op,
-    (outs AccumulatorRegisterClass:$dst),
-    (ins AccumulatorRegisterClass:$accumulator, oprnd:$constant),
+    (outs RegsA16:$dst),
+    (ins RegsA16:$accumulator, oprnd:$constant),
     !strconcat(asmstr, "\t$constant"),
-    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, UnsignedImm16Pattern:$constant))]
+    [(set RegsA16:$dst, (opNode RegsA16:$accumulator, UnsignedImm16Pattern:$constant))]
   >
 {
   let DisableEncoding = "$dst,$accumulator";
@@ -185,10 +209,10 @@ class WDCAddSubCarryInstructionImmediate<
 class WDCAddSubCarryInstructionStackRelative<bits<8> op, SDNode opNode, string asmstr>
 : InstStkRel<
     op,
-    (outs AccumulatorRegisterClass:$dst),
-    (ins AccumulatorRegisterClass:$accumulator, StackOffsetOperand:$spoffset),
+    (outs RegsA16:$dst),
+    (ins RegsA16:$accumulator, StackOffsetOperand:$spoffset),
     !strconcat(asmstr, "\t$spoffset"),
-    [(set AccumulatorRegisterClass:$dst, (opNode AccumulatorRegisterClass:$accumulator, (load frameIndexPattern:$spoffset)))]
+    [(set RegsA16:$dst, (opNode RegsA16:$accumulator, (load frameIndexPattern:$spoffset)))]
   >
 {
   let DisableEncoding = "$dst,$accumulator";
@@ -201,10 +225,10 @@ class WDCLoadInstructionImmediate<
     Operand operand>
 : InstImm16<
     op,
-    (outs AccumulatorRegisterClass:$dst),
+    (outs RegsA16:$dst),
     (ins operand:$constant),
     !strconcat(asmstr, "\t$constant"),
-    [(set AccumulatorRegisterClass:$dst, (load SignedImm16Pattern:$constant))]
+    [(set RegsA16:$dst, (load SignedImm16Pattern:$constant))]
   >
 {
   let DisableEncoding = "$dst";
@@ -229,12 +253,6 @@ class WDCTransferInstruction<bits<8> opcode, dag outs, dag ins, string asmstr>
   // let DisableEncoding = "$src,$dst";
 }
 
-class WDCStatusControlInstruction<bits<8> opcode, string asmstr, RegisterClass dest_rc, list<dag> pattern>
-: InstImpl<opcode, (outs dest_rc:$carryout), (ins), asmstr, pattern>
-{
-  let DisableEncoding = "$carryout";
-}
-
 class WDCStackInstruction<bits<8> opcode, string asmstr>
 : InstImpl<opcode, (outs), (ins), asmstr, []>
 {
@@ -245,10 +263,10 @@ class WDCLoadInstructionStackRelative<
   string asmstr>
 : InstStkRel<
     opcode,
-    (outs AccumulatorRegisterClass:$dst),
+    (outs RegsA16:$dst),
     (ins StackOffsetOperand:$spoffset),
     !strconcat(asmstr, "\t$spoffset"),
-    [(set AccumulatorRegisterClass:$dst, (load frameIndexPattern:$spoffset))]>
+    [(set RegsA16:$dst, (load frameIndexPattern:$spoffset))]>
 {
   let DisableEncoding = "$dst";
   let canFoldAsLoad = 1;
@@ -260,11 +278,11 @@ class InstructionLogicStackRelative<
   string  asmstr,
   SDNode  opnode
 > : InstStkRel<opcode, 
-                                (outs AccumulatorRegisterClass:$dst),
-                                (ins AccumulatorRegisterClass:$src, StackOffsetOperand:$spoffset),
+                                (outs RegsA16:$dst),
+                                (ins RegsA16:$src, StackOffsetOperand:$spoffset),
                                 !strconcat(asmstr, "\t$spoffset"),
-                                [(set AccumulatorRegisterClass:$dst, 
-                                      (opnode AccumulatorRegisterClass:$src, 
+                                [(set RegsA16:$dst, 
+                                      (opnode RegsA16:$src, 
                                               frameIndexPattern:$spoffset)
                                  )
                                 ]
