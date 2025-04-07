@@ -58,9 +58,9 @@ class InstImm16<bits<8> opcode, dag outs, dag ins, string asmstr, list<dag> patt
 : Inst<opcode, outs, ins, asmstr, pattern>
 {
   field bits<24> Inst;
-  bits<16> constant;
+  bits<16> const;
   let Size = 3;
-  let Inst{23-8} = constant;
+  let Inst{23-8} = const;
   let Inst{7-0} = Opcode;
   let m_addrMode = WDCAddressModeImmediate;
 }
@@ -153,8 +153,8 @@ def OprndAbsLong : Operand<iPTR> {
 }
 
 // Pattern 
-def SignedImm16Pattern  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
-def UnsignedImm16Pattern : PatLeaf<(imm), [{ return isUInt<16>(N->getZExtValue()); }]>;
+def SignedImm16Pattern  : PatLeaf<(i16 imm), [{ return isInt<16>(N->getSExtValue()); }]>;
+def UnsignedImm16Pattern : PatLeaf<(i16 imm), [{ return isUInt<16>(N->getZExtValue()); }]>;
 def SignedImm8Pattern : PatLeaf<(imm), [{ return isInt<8>(N->getSExtValue()); }]>;
 def PatternZero16 : PatLeaf<(i16 imm), [{ return N->isZero(); }]>;
 def OnePattern : PatLeaf<(i16 imm), [{ return N->isOne(); }]>;
@@ -179,9 +179,9 @@ class WDCLogicInstructionImmediate<
 : InstImm16<
     op,
     (outs RegsA16:$dst),
-    (ins RegsA16:$accumulator, oprnd:$constant),
-    !strconcat(asmstr, "\t$constant"),
-    [(set RegsA16:$dst, (opNode RegsA16:$accumulator, UnsignedImm16Pattern:$constant))]
+    (ins RegsA16:$accumulator, oprnd:$const),
+    !strconcat(asmstr, "\t$const"),
+    [(set RegsA16:$dst, (opNode RegsA16:$accumulator, UnsignedImm16Pattern:$const))]
   >
 {
   let DisableEncoding = "$dst,$accumulator";
@@ -198,9 +198,9 @@ class WDCAddSubCarryInstructionImmediate<
 : InstImm16<
     op,
     (outs RegsA16:$dst),
-    (ins RegsA16:$accumulator, oprnd:$constant),
-    !strconcat(asmstr, "\t$constant"),
-    [(set RegsA16:$dst, (opNode RegsA16:$accumulator, UnsignedImm16Pattern:$constant))]
+    (ins RegsA16:$accumulator, oprnd:$const),
+    !strconcat(asmstr, "\t$const"),
+    [(set RegsA16:$dst, (opNode RegsA16:$accumulator, UnsignedImm16Pattern:$const))]
   >
 {
   let DisableEncoding = "$dst,$accumulator";

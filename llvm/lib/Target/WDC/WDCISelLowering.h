@@ -64,8 +64,9 @@ namespace llvm {
 
       Sync,
 
-      ADDsr,
+      ADCi,
       ADCsr,
+      ADDsr,
       ADDi,
       ANDsr,
       EORsr,

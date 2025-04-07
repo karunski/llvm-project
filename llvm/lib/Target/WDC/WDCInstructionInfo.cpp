@@ -150,7 +150,7 @@ void llvm::WDCInstrInfo::adjustStackPtr(unsigned SP, int64_t amount,
       // ONly if in 8-bit a mode.
       //BuildMI(MBB, I, debugLoc, get(WDC::REP), WDC::P).addImm(0x20);
       BuildMI(MBB, I, debugLoc, get(WDC::TSC));
-      BuildMI(MBB, I, debugLoc, get(WDC::ADCi), WDC::A).addReg(WDC::A).addImm(amount);
+      BuildMI(MBB, I, debugLoc, get(WDC::ADCi)).addImm(amount);
       BuildMI(MBB, I, debugLoc, get(WDC::TCS));
     }
   }

@@ -30,8 +30,8 @@ def SEC    : InstImpl<0x38, (outs), (ins), "SEC", []>;
 let isAdd = 1 in {
   let Uses=[C,Carry,M],Defs=[C,Carry] in {
     def ADCdp : InstDrctPg<0x65, (outs), (ins OprndAddr8:$addr), "ADC\t$addr", [(set C, (ADCsrNode C, PatternDp:$addr))]>;
+    def ADCi  : InstImm16<0x69, (outs),  (ins UnsignedImm16Operand:$const), "ADC\t$const", [(set C, (ADCiNode C, UnsignedImm16Pattern:$const))]>;
   }
-  def ADCi  : WDCAddSubCarryInstructionImmediate<0x69, adde, "ADC", UnsignedImm16Operand>;
   //def ADCsr : WDCAddSubCarryInstructionStackRelative<0x63, addc, "ADC">;
   //def ADDsr : ADDSUBStackRelativePseudo<ADDsrNode>;
   let Uses=[C,M], Defs=[C,Carry], mayLoad=1 in {
@@ -47,8 +47,8 @@ def ANDsr : InstructionLogicStackRelative<0x23, "AND", ANDsrNode>;
 def ASL : InstImpl<0x0A, (outs RegsA16:$dst), (ins RegsA16:$src), 
                                  "ASL\tA", [(set RegsA16:$dst, (shl RegsA16:$src, OnePattern))]>;
 
-def CMPi : InstImm16<0xc9, (outs StatusReg:$sr), (ins RegsA16:$src, UnsignedImm16Operand:$constant),
-                                   "CMP\t$constant", []>;
+def CMPi : InstImm16<0xc9, (outs StatusReg:$sr), (ins RegsA16:$src, UnsignedImm16Operand:$const),
+                                   "CMP\t$const", []>;
 def CMPsr : InstStkRel<0xc3, (outs StatusReg:$sr),
                                         (ins RegsA16:$src, StackOffsetOperand:$spoffset),
                                         "CMP\t$spoffset", []>;
@@ -71,8 +71,8 @@ let Defs=[A],Uses=[M],hasSideEffects=false in {
                       "LONGA OFF\n\tLDA\t$const", [(set RegsA8:$dst, (load imm:$const))]>;
 }
 let Defs=[C],Uses=[M],mayLoad=1,hasSideEffects=true,isReMaterializable=1 in {
-  def LDAi : InstImm16<0xA9, (outs), (ins UnsignedImm16Operand:$constant),
-                       "LDA\t$constant", [(set C, imm:$constant)]>;
+  def LDAi : InstImm16<0xA9, (outs), (ins UnsignedImm16Operand:$const),
+                       "LDA\t$const", [(set C, imm:$const)]>;
 }
 
 def LDAsr  : WDCLoadInstructionStackRelative<0xA3, "LDA">;
