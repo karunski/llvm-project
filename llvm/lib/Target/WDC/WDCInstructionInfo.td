@@ -26,12 +26,20 @@ def CLC    : InstImpl<0x18, (outs), (ins), "CLC", []>;
 def SEC    : InstImpl<0x38, (outs), (ins), "SEC", []>;
 }
 
+
 let isAdd = 1 in {
+  let Uses=[C,Carry,M],Defs=[C,Carry] in {
+    def ADCdb : InstDrctPg<0x65, (outs), (ins OprndAddr8:$addr), "ADC\t$addr", [(set C, (adde C, (load PatternDp:$addr)))]>;
+  }
   def ADCi  : WDCAddSubCarryInstructionImmediate<0x69, adde, "ADC", UnsignedImm16Operand>;
-  def ADCsr : WDCAddSubCarryInstructionStackRelative<0x63, addc, "ADC">;
-  def ADDsr : ADDSUBStackRelativePseudo<ADDsrNode>;
+  //def ADCsr : WDCAddSubCarryInstructionStackRelative<0x63, addc, "ADC">;
+  //def ADDsr : ADDSUBStackRelativePseudo<ADDsrNode>;
+  let Uses=[C,M], Defs=[C,Carry], mayLoad=1 in {
+    def ADDsr : InstPseudo<(outs), (ins OprndAddr8:$addr), [(set C, (ADDsrNode C, PatternDp:$addr))]>;
+  }
   def ADDi : ADDImmediatePseudo;
 }
+
 
 def ANDi : WDCLogicInstructionImmediate<0x29, and, "AND", UnsignedImm16Operand>;
 def ANDsr : InstructionLogicStackRelative<0x23, "AND", ANDsrNode>;
@@ -141,7 +149,7 @@ let mayStore=true, Uses=[M],hasSideEffects=false in {
 }
 
 let Defs=[X],Uses=[C] in {
-  def TAX : InstImpl<0xAA, (outs), (ins), "TAX", [(set X, C)]>;
+  def TAX : InstImpl<0xAA, (outs), (ins), "TAX", []>;
 }
 // "Transfer Carry to least significant bit of A" == ROL A 
 def TCA : InstPseudo<(outs RegsA16:$dst), (ins StatusReg:$src), []>;
@@ -151,7 +159,7 @@ def TCS : WDCTransferInstruction<0x1B, (outs), (ins RegsA16:$src), "TCS">;
 def TCD : WDCTransferInstruction<0x5B, (outs), (ins RegsA16:$src), "TCD">;
 
 let Defs=[C],Uses=[X] in {
-  def TXA : InstImpl<0x8A, (outs), (ins), "TXA", [(set C, X)]>;
+  def TXA : InstImpl<0x8A, (outs), (ins), "TXA", []>;
 }
 
 def XBA : InstImpl<0xEB, (outs RegsA16:$dst), (ins RegsA16:$src),

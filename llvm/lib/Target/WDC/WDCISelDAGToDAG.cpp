@@ -51,8 +51,8 @@ namespace {
 class WDCDAGToDAGISel : public SelectionDAGISel {
   public:
     explicit WDCDAGToDAGISel(WDCTargetMachine &TM, CodeGenOptLevel OL)
-        : SelectionDAGISel(TM, OL), Subtarget(nullptr) {}
-  
+        : SelectionDAGISel{TM, OL}, Subtarget{nullptr} {}
+
     bool runOnMachineFunction(MachineFunction &MF) override;
   
   protected:
@@ -97,10 +97,8 @@ class WDCDAGToDAGISel : public SelectionDAGISel {
       return false;
     }
 
-    bool SelectDirectPage(SDNode * Parent, SDValue frmIdxSDVal, SDValue &addr) {
+    bool SelectDirectPage(SDValue frmIdxSDVal, SDValue &addr) {
       const auto & frmIdxNd = *cast<FrameIndexSDNode>(frmIdxSDVal.getNode());
-      const auto parentOp = static_cast<ISD::NodeType>(Parent->getOpcode());
-      if (parentOp != ISD::STORE) { return false; }
       addr = CurDAG->getTargetFrameIndex(frmIdxNd.getIndex(), MVT::i8);
       return true;
     }
@@ -133,7 +131,6 @@ class WDCDAGToDAGISel : public SelectionDAGISel {
 
 bool WDCDAGToDAGISel::runOnMachineFunction(MachineFunction &MF) {
   bool Ret = SelectionDAGISel::runOnMachineFunction(MF);
-
   return Ret;
 }
 

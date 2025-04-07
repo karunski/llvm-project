@@ -166,8 +166,8 @@ def NearGlobalPattern : ComplexPattern<i16, 1, "SelectNearGlobal", [globaladdr]>
 let WantsParent=1 in {
   def NearIndirPattern  : ComplexPattern<i8,  1, "SelectNearIndirect", [ld]>;
   def PatternDpil       : ComplexPattern<i8,  1, "SelectDirectPageIndirectLong", [ld]>;
-  def PatternDp         : ComplexPattern<iPTR,  1, "SelectDirectPage", [frameindex]>; 
 }
+def PatternDp         : ComplexPattern<iPTR,  1, "SelectDirectPage", [frameindex]>; 
 def GlobalIndirectPattern : ComplexPattern<i32, 1, "SelectGlobalIndirect", [ld]>;
 
 class WDCLogicInstructionImmediate<

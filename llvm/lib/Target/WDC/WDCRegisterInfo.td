@@ -77,5 +77,5 @@ def ArchRegs : RegisterClass<"WDC", [i16], 8, (add PC, S)>;
 
 def FakeRegs : RegisterClass<"WDC", [i32], 8, (add ADDR0)>;
 
-def FlagsM : RegisterClass<"WDC", [i1], 8, (add M)>;
+def Flags : RegisterClass<"WDC", [i1], 8, (add M,Carry)>;
 

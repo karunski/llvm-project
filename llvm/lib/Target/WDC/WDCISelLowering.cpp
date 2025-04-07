@@ -83,14 +83,14 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   addRegisterClass(MVT::i16, &WDC::IndexRegsRegClass);
   addRegisterClass(MVT::i8, &WDC::StatusRegRegClass);
   addRegisterClass(MVT::i32, &WDC::FakeRegsRegClass);
-  addRegisterClass(MVT::i1, &WDC::FlagsMRegClass);
+  addRegisterClass(MVT::i1, &WDC::FlagsRegClass);
 
   setBooleanContents(TargetLowering::ZeroOrOneBooleanContent);
 
   setOperationAction(ISD::ADD,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::AND,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::OR,   MVT::i16, LegalizeAction::Custom);
-  setOperationAction(ISD::SUB,  MVT::i16, LegalizeAction::Custom);
+  //setOperationAction(ISD::SUB,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::ROTL, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SHL,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SRA,  MVT::i16, LegalizeAction::Custom);
@@ -302,6 +302,7 @@ SDValue llvm::WDCTargetLowering::LowerStackRelativeOperand(SDValue node, Selecti
   // All instructions are effectively using Accumulator as the first operand, and Memory as the second.
   // Therefore, we have to try to fold the load for the memory operand into the instruction if possible.
   // The resulting wdcNode must take a chain operand, which will be assigned to whatever the load was chained to.
+  assert(node.hasOneUse() && "folded operand should have only one use.");
   const auto rhsOperand = node.getOperand(1);
   if (const auto loadNode = dyn_cast<LoadSDNode>(rhsOperand.getNode()); loadNode) {
     const auto loadBasePtrValue = loadNode->getBasePtr();
