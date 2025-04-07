@@ -92,7 +92,7 @@ bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     expandADD(MBB, MI, WDC::ADCi);
     break;
   case WDC::ADDsr:
-    expandADD(MBB, MI, WDC::ADCdb);
+    expandADD(MBB, MI, WDC::ADCdp);
     break;
   case WDC::ROTL:
     expandROTL(MBB, MI);

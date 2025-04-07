@@ -22,14 +22,14 @@ include "WDCPseudoInstructions.td"
 def RTL    : WDCReturnInstruction<0x6b, "RTL">;
 
 let Defs=[Carry], isReMaterializable=1, isAsCheapAsAMove=1 in {
-def CLC    : InstImpl<0x18, (outs), (ins), "CLC", []>;
+def CLC    : InstImpl<0x18, (outs), (ins), "CLC", [(CLCNode)]>;
 def SEC    : InstImpl<0x38, (outs), (ins), "SEC", []>;
 }
 
 
 let isAdd = 1 in {
   let Uses=[C,Carry,M],Defs=[C,Carry] in {
-    def ADCdb : InstDrctPg<0x65, (outs), (ins OprndAddr8:$addr), "ADC\t$addr", [(set C, (adde C, (load PatternDp:$addr)))]>;
+    def ADCdp : InstDrctPg<0x65, (outs), (ins OprndAddr8:$addr), "ADC\t$addr", [(set C, (ADCsrNode C, PatternDp:$addr))]>;
   }
   def ADCi  : WDCAddSubCarryInstructionImmediate<0x69, adde, "ADC", UnsignedImm16Operand>;
   //def ADCsr : WDCAddSubCarryInstructionStackRelative<0x63, addc, "ADC">;

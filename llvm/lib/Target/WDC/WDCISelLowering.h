@@ -65,6 +65,7 @@ namespace llvm {
       Sync,
 
       ADDsr,
+      ADCsr,
       ADDi,
       ANDsr,
       EORsr,
@@ -76,6 +77,7 @@ namespace llvm {
       LEA,
       STA,
       SETM,
+      CLC,
     };
   }
 
@@ -193,7 +195,8 @@ namespace llvm {
     SDValue LowerStore(StoreSDNode *stNd, const SDLoc &dbgLoc,
                        SelectionDAG &DAG) const;
 
-    SDValue LowerAdd(SDValue node, SelectionDAG &DAG) const;
+    SDValue LowerAdd(SDValue node, const SDLoc &debugLoc,
+                     SelectionDAG &DAG) const;
 
     SDValue LowerStackRelativeOperand(SDValue node, SelectionDAG &DAG, WDCISD::NodeType wdcNodeType) const;
 

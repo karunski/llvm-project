@@ -5,6 +5,7 @@ def WDCRetNode : SDNode<"WDCISD::Ret", SDTNone,
 def BinaryOpNode : SDTypeProfile<1, 2, [SDTCisInt<0>, SDTCisInt<1>]>;
 def ADDiNode  : SDNode<"WDCISD::ADDi",  BinaryOpNode, [SDNPOutGlue]>;
 def ADDsrNode : SDNode<"WDCISD::ADDsr", SDTypeProfile<1, 2, [SDTCisInt<0>, SDTCisSameAs<0,1>, SDTCisPtrTy<2>]>, [SDNPHasChain, SDNPOutGlue]>;
+def ADCsrNode : SDNode<"WDCISD::ADCsr", SDTypeProfile<1, 2, [SDTCisInt<0>, SDTCisSameAs<0,1>, SDTCisPtrTy<2>]>, [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue]>;
 def ANDsrNode : SDNode<"WDCISD::ANDsr", BinaryOpNode, [SDNPHasChain]>;
 def CLCNode   : SDNode<"WDCISD::CLC", SDTypeProfile<0, 0, []>, [SDNPHasChain, SDNPOutGlue]>;
 def EORsrNode : SDNode<"WDCISD::EORsr", BinaryOpNode, [SDNPHasChain]>;

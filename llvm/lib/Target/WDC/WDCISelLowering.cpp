@@ -57,6 +57,7 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::Wrapper:           return "WDCISD::Wrapper";
   case WDCISD::ADDi:              return "WDCISD::ADDi";
   case WDCISD::ADDsr:             return "WDCISD::ADDsr";
+  case WDCISD::ADCsr:             return "WDCISD::ADCsr";
   case WDCISD::ANDsr:             return "WDCISD::ANDsr";
   case WDCISD::EORsr:             return "WDCISD::EORsr";
   case WDCISD::SETCCsr:           return "WDCISD::SETCCsr";
@@ -67,6 +68,7 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::LEA:               return "WDCISD::LEA";
   case WDCISD::STA:               return "WDCISD::STA";
   case WDCISD::SETM:              return "WDCISD::SETM";
+  case WDCISD::CLC:               return "WDCISD::CLC";
   default:                        return NULL;
   }
 }
@@ -268,11 +270,15 @@ WDCTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
   return DAG.getNode(WDCISD::Ret, DL, MVT::Other, RetOps);
 }
 
-SDValue llvm::WDCTargetLowering::LowerAdd(SDValue node, SelectionDAG & DAG) const {
-  const SDLoc debugLoc{node};
+SDValue llvm::WDCTargetLowering::LowerAdd(SDValue node, const SDLoc & debugLoc, SelectionDAG & DAG) const {
 
-  if (const auto loweredToStackRel = LowerStackRelativeOperand(node, DAG, WDCISD::ADDsr); loweredToStackRel) {
-    return loweredToStackRel;
+  if (const auto loweredToStackRel = LowerStackRelativeOperand(node, DAG, WDCISD::ADCsr); loweredToStackRel) {
+    const auto chVl = loweredToStackRel.getOperand(0);
+    const auto chVlTy = chVl.getSimpleValueType();
+    assert(chVlTy == MVT::Other && "expecting chain operand as first operand to ADCsr");
+    const auto CLCNode = DAG.getNode(WDCISD::CLC, debugLoc, chVlTy, chVl);
+    const auto adcVlTy = loweredToStackRel.getValueType();
+    return DAG.getNode(WDCISD::ADCsr, debugLoc, {adcVlTy, chVlTy}, {CLCNode, loweredToStackRel.getOperand(1), loweredToStackRel.getOperand(2)});
   }
 
   const SDValue operands[] = {node.getOperand(0), node.getOperand(1) };
@@ -345,7 +351,7 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
   const SDLoc dbgLoc{node};
 
   if (const auto opcode = static_cast<ISD::NodeType>(node.getOpcode()); opcode == ISD::ADD) {
-    return LowerAdd(node, DAG);
+    return LowerAdd(node, dbgLoc, DAG);
   }
   else if (opcode == ISD::SUB) {
     return LowerStackRelativeOperand(node, DAG, WDCISD::SUBsr);
