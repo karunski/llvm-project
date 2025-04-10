@@ -23,7 +23,7 @@ def RTL    : WDCReturnInstruction<0x6b, "RTL">;
 
 let Defs=[Carry], isReMaterializable=1, isAsCheapAsAMove=1 in {
 def CLC    : InstImpl<0x18, (outs), (ins), "CLC", [(CLCNode)]>;
-def SEC    : InstImpl<0x38, (outs), (ins), "SEC", []>;
+def SEC    : InstImpl<0x38, (outs), (ins), "SEC", [(SECNode)]>;
 }
 
 let isAdd = 1,Uses=[C,Carry,M],Defs=[C,Carry] in {
@@ -71,6 +71,15 @@ let Defs=[C],Uses=[M],mayLoad=1,hasSideEffects=true,isReMaterializable=1 in {
 
 def LDAsr  : WDCLoadInstructionStackRelative<0xA3, "LDA">;
 
+let mayLoad=1,hasSideEffects=0 in {
+  let Defs=[X] in {
+    def LDXdp : InstDrctPg<0xA6, (outs), (ins OprndAddr8:$addr), "LDX\t$addr", [(set X, (load PatternDp:$addr))]>;
+  }
+  let Defs=[Y] in {
+    def LDYdp : InstDrctPg<0xA4, (outs), (ins OprndAddr8:$addr), "LDY\t$addr", [(set Y, (load PatternDp:$addr))]>;
+  }
+}
+
 // Pseudo instruction to copy the address of a stack slot into the accumulator
 def LEAsr  : InstPseudo<(outs RegsA16:$dst), (ins StackOffsetOperand:$frameIndex),
                         [(set RegsA16:$dst, (LEANode frameIndexPattern:$frameIndex))]>;
@@ -79,10 +88,11 @@ def LSR : InstImpl<0x4A, (outs RegsA16:$dst), (ins RegsA16:$src),
                                 "LSR\tA", 
                                 [(set RegsA16:$dst, (srl RegsA16:$src, OnePattern))]>;
 
-def SUBsr : ADDSUBStackRelativePseudo<SUBsrNode>;
-
-def SBCi   : WDCAddSubCarryInstructionImmediate<0xE9, subc, "SBC", UnsignedImm16Operand>;
-def SBCsr  : WDCAddSubCarryInstructionStackRelative<0xE3, subc, "SBC">;
+let Defs=[C,Carry],Uses=[C,Carry,M] in {
+  def SBCi  : InstImm16<0xE9,  (outs), (ins UnsignedImm16Operand:$const), "SBC\t$const", [(set C, (sub C, UnsignedImm16Pattern:$const))]>;
+  def SBCsr : InstStkRel<0xE3, (outs), (ins OprndAddr8:$spoffset), "SBC\t$spoffset", [(set C, (SBCsrNode C, PatternDp:$spoffset))]>;
+  def SBCdb : InstDrctPg<0xE5, (outs), (ins OprndAddr8:$addr), "SBC\t$addr", [(set C, (SBCsrNode C, PatternDp:$addr))]>;
+}
 
 def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
 def ORAsr  : InstructionLogicStackRelative<0x03, "ORA", ORAsrNode>;
@@ -137,9 +147,17 @@ let mayStore=true, Uses=[C,M],hasSideEffects=false in {
   //                         [(STANode RegsA8:$src, frameIndexPattern:$spoffset, M)]>;
 }
 
-let mayStore=true, Uses=[M],hasSideEffects=false in {
-  def STZa  : InstAbs<0x9C,    (outs), (ins OprndAddr16:$addr), "STZ\t$addr", [(store PatternZero16, NearGlobalPattern:$addr)]>;
-  def STZdp : InstDrctPg<0x64, (outs), (ins OprndAddr8:$addr),  "STZ\t$addr", [(store PatternZero16, PatternDp:$addr)]>;
+let mayStore=true,hasSideEffects=false in {
+  let Uses=[Y] in {
+    def STYdp : InstDrctPg<0x8C, (outs), (ins OprndAddr8:$addr), "STY\t$addr", [(store Y, PatternDp:$addr)]>;
+  }
+  let Uses=[X] in {
+    def STXdp : InstDrctPg<0x8E, (outs), (ins OprndAddr8:$addr), "STX\t$addr", [(store X, PatternDp:$addr)]>;
+  }
+  let Uses=[M],hasSideEffects=false in {
+    def STZa  : InstAbs<0x9C,    (outs), (ins OprndAddr16:$addr), "STZ\t$addr", [(store PatternZero16, NearGlobalPattern:$addr)]>;
+    def STZdp : InstDrctPg<0x64, (outs), (ins OprndAddr8:$addr),  "STZ\t$addr", [(store PatternZero16, PatternDp:$addr)]>;
+  }
 }
 
 let Defs=[X],Uses=[C] in {

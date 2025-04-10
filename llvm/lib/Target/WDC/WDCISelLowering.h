@@ -71,11 +71,12 @@ namespace llvm {
       ANDsr,
       EORsr,
       SETCCsr,
-      SUBsr,
+      SBCsr,
       ORAsr,
       LDAdpil,
       LDAi,
       LEA,
+      SEC,
       STA,
       SETM,
       CLC,
@@ -197,6 +198,9 @@ namespace llvm {
                        SelectionDAG &DAG) const;
 
     SDValue LowerAdd(SDValue node, const SDLoc &debugLoc,
+                     SelectionDAG &DAG) const;
+
+    SDValue LowerSub(SDValue node, const SDLoc &debugLoc,
                      SelectionDAG &DAG) const;
 
     SDValue LowerStackRelativeOperand(SDValue node, SelectionDAG &DAG, WDCISD::NodeType wdcNodeType) const;

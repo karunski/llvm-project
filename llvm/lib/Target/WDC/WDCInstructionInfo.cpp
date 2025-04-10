@@ -97,9 +97,6 @@ bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   case WDC::SRA:
     expandSRA(MBB, MI);
     break;
-  case WDC::SUBsr:
-    expandSUB(MBB, MI, WDC::SBCsr);
-    break;
   case WDC::TCA:
     expandTCA(MBB, MI);
     break;
@@ -129,7 +126,7 @@ void llvm::WDCInstrInfo::adjustStackPtr(unsigned SP, int64_t amount,
       // only if in 8-bit A mode 
       //BuildMI(MBB, I, debugLoc, get(WDC::REP), WDC::P).addImm(0x20);
       BuildMI(MBB, I, debugLoc, get(WDC::TSC));
-      BuildMI(MBB, I, debugLoc, get(WDC::SBCi), WDC::A).addReg(WDC::A).addImm(amount);
+      BuildMI(MBB, I, debugLoc, get(WDC::SBCi)).addImm(amount);
       BuildMI(MBB, I, debugLoc, get(WDC::TCS));
     }
   }
@@ -160,6 +157,13 @@ void llvm::WDCInstrInfo::storeRegToStack(
     const TargetRegisterInfo *TRI, int64_t Offset) const {
   MachineMemOperand *MMO = GetMemOperand(MBB, FrameIndex, MachineMemOperand::MOStore);
 
+  if (SrcReg == WDC::X) {
+    // Store the X register to the stack.
+    BuildMI(MBB, MI, DebugLoc{}, get(WDC::STXdp))
+        .addFrameIndex(FrameIndex);
+    return;
+  }
+
   const auto Opc = WDC::STAsr;
   assert(Opc && "Register class not handled!");
 
@@ -177,6 +181,13 @@ void llvm::WDCInstrInfo::loadRegFromStack(MachineBasicBlock &basicBlock,
                                             const TargetRegisterInfo */*TRI*/,
                                             int64_t Offset) const {
   const auto debugLoc = blockIter != basicBlock.end() ? blockIter->getDebugLoc() : DebugLoc{};
+
+  if (DestReg == WDC::X) {
+    // Store the X register to the stack.
+    BuildMI(basicBlock, blockIter, DebugLoc{}, get(WDC::LDXdp))
+        .addFrameIndex(FrameIndex);
+    return;
+  }
 
   const auto MMO = GetMemOperand(basicBlock, FrameIndex, MachineMemOperand::MOLoad);
   const auto Opc = WDC::LDAsr;
@@ -209,14 +220,6 @@ void llvm::WDCInstrInfo::expandSetM(MachineBasicBlock &MBB, MachineBasicBlock::i
   else {
     BuildMI(MBB, I, dbgLoc, get(WDC::REP)).add(I->getOperand(0)).addImm(0b00100000);
   }
-}
-
-void llvm::WDCInstrInfo::expandSUB(MachineBasicBlock &MBB, MachineBasicBlock::iterator I, const unsigned realOpcode) const {
-  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::SEC));
-  BuildMI(MBB, I, I->getDebugLoc(), get(realOpcode))
-      .add(I->getOperand(0))
-      .add(I->getOperand(1))
-      .add(I->getOperand(2));
 }
 
 void llvm::WDCInstrInfo::expandSRA(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const {

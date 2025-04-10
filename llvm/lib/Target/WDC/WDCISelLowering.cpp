@@ -62,11 +62,12 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::ANDsr:             return "WDCISD::ANDsr";
   case WDCISD::EORsr:             return "WDCISD::EORsr";
   case WDCISD::SETCCsr:           return "WDCISD::SETCCsr";
-  case WDCISD::SUBsr:             return "WDCISD::SUBsr";
+  case WDCISD::SBCsr:             return "WDCISD::SBCsr";
   case WDCISD::ORAsr:             return "WDCISD::ORAsr";
   case WDCISD::LDAdpil:           return "WDCISD::LDAdpil";
   case WDCISD::LDAi:              return "WDCISD::LDAi";
   case WDCISD::LEA:               return "WDCISD::LEA";
+  case WDCISD::SEC:               return "WDCISD::SEC";
   case WDCISD::STA:               return "WDCISD::STA";
   case WDCISD::SETM:              return "WDCISD::SETM";
   case WDCISD::CLC:               return "WDCISD::CLC";
@@ -93,7 +94,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::ADD,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::AND,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::OR,   MVT::i16, LegalizeAction::Custom);
-  //setOperationAction(ISD::SUB,  MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::SUB,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::ROTL, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SHL,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SRA,  MVT::i16, LegalizeAction::Custom);
@@ -141,7 +142,7 @@ std::unique_ptr<const WDCTargetLowering> WDCTargetLowering::create(const WDCTarg
 //@            Formal Arguments Calling Convention Implementation
 //===----------------------------------------------------------------------===//
 
-//@LowerFormalArguments {
+//@LowerFormalArguments {f
 /// LowerFormalArguments - transform physical registers into virtual registers
 /// and generate load operations for arguments places on the stack.
 SDValue
@@ -309,14 +310,26 @@ SDValue llvm::WDCTargetLowering::LowerAdd(SDValue node, const SDLoc & debugLoc, 
   return DAG.getNode(ISD::ADD, debugLoc, {node.getValueType()}, {lhs, tempLoad});
 }
 
+SDValue llvm::WDCTargetLowering::LowerSub(SDValue node, const SDLoc & debugLoc, SelectionDAG & DAG) const {
+  if (const auto loweredToStackRel = LowerStackRelativeOperand(node, DAG, WDCISD::SBCsr); loweredToStackRel) {
+    const auto chVl = loweredToStackRel.getOperand(0);
+    const auto chVlTy = chVl.getSimpleValueType();
+    assert(chVlTy == MVT::Other && "expecting chain operand as first operand to ADCsr");
+    const auto CLCNode = DAG.getNode(WDCISD::SEC, debugLoc, chVlTy, chVl);
+    const auto adcVlTy = loweredToStackRel.getValueType();
+    return DAG.getNode(WDCISD::SBCsr, debugLoc, {adcVlTy, chVlTy}, {CLCNode, loweredToStackRel.getOperand(1), loweredToStackRel.getOperand(2)});
+  }
+
+  return {};
+}
+
 SDValue llvm::WDCTargetLowering::LowerStackRelativeOperand(SDValue node, SelectionDAG & DAG, WDCISD::NodeType wdcNode) const {
   const SDLoc debugLoc{node};
 
   // All instructions are effectively using Accumulator as the first operand, and Memory as the second.
   // Therefore, we have to try to fold the load for the memory operand into the instruction if possible.
   // The resulting wdcNode must take a chain operand, which will be assigned to whatever the load was chained to.
-  assert(node.hasOneUse() && "folded operand should have only one use.");
-  const auto rhsOperand = node.getOperand(1);
+  const auto rhsOperand = node.getOperand(1);  
   if (const auto loadNode = dyn_cast<LoadSDNode>(rhsOperand.getNode()); loadNode) {
     const auto loadBasePtrValue = loadNode->getBasePtr();
     if (const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(loadBasePtrValue.getNode()); frameIndexNode) {
@@ -361,7 +374,7 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
     return LowerAdd(node, dbgLoc, DAG);
   }
   else if (opcode == ISD::SUB) {
-    return LowerStackRelativeOperand(node, DAG, WDCISD::SUBsr);
+    return LowerSub(node, dbgLoc, DAG);
   }
   else if (opcode == ISD::AND) {
     return LowerStackRelativeOperand(node, DAG, WDCISD::ANDsr); 
