@@ -88,12 +88,6 @@ bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   case WDC::RetRTL:
     expandRTL(MBB, MI);
     break;
-  case WDC::ADDi:
-    expandADD(MBB, MI, WDC::ADCi);
-    break;
-  case WDC::ADDsr:
-    expandADD(MBB, MI, WDC::ADCdp);
-    break;
   case WDC::ROTL:
     expandROTL(MBB, MI);
     break;
@@ -215,13 +209,6 @@ void llvm::WDCInstrInfo::expandSetM(MachineBasicBlock &MBB, MachineBasicBlock::i
   else {
     BuildMI(MBB, I, dbgLoc, get(WDC::REP)).add(I->getOperand(0)).addImm(0b00100000);
   }
-}
-
-void llvm::WDCInstrInfo::expandADD(MachineBasicBlock &MBB,
-                                   MachineBasicBlock::iterator I,
-                                   const unsigned realOpcode) const {
-  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::CLC));
-  BuildMI(MBB, I, I->getDebugLoc(), get(realOpcode)).add(I->getOperand(0));
 }
 
 void llvm::WDCInstrInfo::expandSUB(MachineBasicBlock &MBB, MachineBasicBlock::iterator I, const unsigned realOpcode) const {

@@ -26,20 +26,10 @@ def CLC    : InstImpl<0x18, (outs), (ins), "CLC", [(CLCNode)]>;
 def SEC    : InstImpl<0x38, (outs), (ins), "SEC", []>;
 }
 
-
-let isAdd = 1 in {
-  let Uses=[C,Carry,M],Defs=[C,Carry] in {
-    def ADCdp : InstDrctPg<0x65, (outs), (ins OprndAddr8:$addr), "ADC\t$addr", [(set C, (ADCsrNode C, PatternDp:$addr))]>;
-    def ADCi  : InstImm16<0x69, (outs),  (ins UnsignedImm16Operand:$const), "ADC\t$const", [(set C, (ADCiNode C, UnsignedImm16Pattern:$const))]>;
-  }
-  //def ADCsr : WDCAddSubCarryInstructionStackRelative<0x63, addc, "ADC">;
-  //def ADDsr : ADDSUBStackRelativePseudo<ADDsrNode>;
-  let Uses=[C,M], Defs=[C,Carry], mayLoad=1 in {
-    def ADDsr : InstPseudo<(outs), (ins OprndAddr8:$addr), [(set C, (ADDsrNode C, PatternDp:$addr))]>;
-  }
-  def ADDi : ADDImmediatePseudo;
+let isAdd = 1,Uses=[C,Carry,M],Defs=[C,Carry] in {
+  def ADCdp : InstDrctPg<0x65, (outs), (ins OprndAddr8:$addr), "ADC\t$addr", [(set C, (ADCsrNode C, PatternDp:$addr))]>;
+  def ADCi  : InstImm16<0x69, (outs),  (ins UnsignedImm16Operand:$const), "ADC\t$const", [(set C, (ADCiNode C, UnsignedImm16Pattern:$const))]>;
 }
-
 
 def ANDi : WDCLogicInstructionImmediate<0x29, and, "AND", UnsignedImm16Operand>;
 def ANDsr : InstructionLogicStackRelative<0x23, "AND", ANDsrNode>;
@@ -55,6 +45,10 @@ def CMPsr : InstStkRel<0xc3, (outs StatusReg:$sr),
 
 def EORi : WDCLogicInstructionImmediate<0x49, xor, "EOR", UnsignedImm16Operand>;
 def EORsr : InstructionLogicStackRelative<0x43, "EOR", EORsrNode>;
+
+let isAdd = 1,Defs=[C],Uses=[C] in {
+  def INC : InstImpl<0x1A, (outs), (ins), "INC A", [(set C, (add C, OnePattern))]>;
+}
 
 let mayLoad=1 in {
   def LDAal : InstAbsLong<0xAF, (outs RegsA16:$dst), (ins OprndAbsLong:$src),

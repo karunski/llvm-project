@@ -287,6 +287,12 @@ SDValue llvm::WDCTargetLowering::LowerAdd(SDValue node, const SDLoc & debugLoc, 
   const auto rhsNdTy = static_cast<ISD::NodeType>(rhs.getOpcode());
   
   if (rhsNdTy == ISD::Constant) {
+    const auto rhsNd = dyn_cast<ConstantSDNode>(rhs.getNode());
+    if (rhsNd->isOne()) {
+      // If the rhs operand is a constant 1, we can use the INC instruction
+      // instead of the ADC instruction.  This is a 1-byte instruction.
+      return {};// don't modify it.
+    }
     const auto CLCNode = DAG.getNode(WDCISD::CLC, debugLoc, MVT::Other, DAG.getUNDEF(MVT::Other));
     return DAG.getNode(WDCISD::ADCi, debugLoc, {node.getValueType()},
                         {CLCNode, lhs, rhs});
