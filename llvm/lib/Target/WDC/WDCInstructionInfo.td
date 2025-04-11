@@ -140,12 +140,7 @@ let mayStore=true, Uses=[C,M],hasSideEffects=false in {
   def STAdp  : InstDrctPg<0x85,  (outs), (ins OprndAddr8:$addr),   "STA\t$addr", [(store C, PatternDp:$addr)]>;
   def STAdpi : InstDrctPg<0x92,  (outs), (ins OprndAddr8:$addr),   "STA\t($addr)", [(store C, NearIndirPattern:$addr)]>;
   def STAdpil : InstDrctPg<0x87, (outs), (ins OprndAddr8:$addr),   "STA\t[$addr]", [(store C, PatternDpil:$addr)]>;
-  def STAsr  : InstStkRel<0x83,  (outs), (ins RegsA16:$accumulator, StackOffsetOperand:$spoffset),
-                          "STA\t$spoffset", 
-                          [(STANode RegsA16:$accumulator, frameIndexPattern:$spoffset, M)]>;
-  // def STAsr8 : InstStkRel<0x83, (outs), (ins RegsA8:$src, StackOffsetOperand:$spoffset),
-  //                         "STA\t$spoffset", 
-  //                         [(STANode RegsA8:$src, frameIndexPattern:$spoffset, M)]>;
+  def STAsr  : InstStkRel<0x83,  (outs), (ins OprndAddr8:$spoffset), "STA\t$spoffset,S", [(store C, PatternDp:$spoffset)]>;
 }
 
 let mayStore=true,hasSideEffects=false in {

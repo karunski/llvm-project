@@ -101,9 +101,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::XOR,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SETCC, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::GlobalAddress, MVT::i32, LegalizeAction::Custom);
-  //setOperationAction(ISD::LOAD, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::STORE, MVT::i32, LegalizeAction::Custom);
-  // setOperationAction(ISD::STORE, MVT::i16, LegalizeAction::Custom);
   // setOperationAction(ISD::STORE, MVT::i8, LegalizeAction::Custom);
   //setOperationAction({ISD::Constant}, {MVT::i8,MVT::i16}, LegalizeAction::Custom);
 
@@ -487,11 +485,6 @@ SDValue llvm::WDCTargetLowering::LowerStore(StoreSDNode * stNd, const SDLoc& dbg
   if (valNdValTy == MVT::i8) {
     const auto setM = getSetMFlag(DAG, 1, dbgLoc);
     return DAG.getNode(WDCISD::STA, dbgLoc, MVT::i8, {chNd, valNd, addrNd, setM});
-  }
-
-  if (valNdValTy == MVT::i16) {
-    const auto setM = getSetMFlag(DAG, 0, dbgLoc);
-    return DAG.getNode(WDCISD::STA, dbgLoc, MVT::i16, {chNd, valNd, addrNd, setM});
   }
 
   return SDValue{};
