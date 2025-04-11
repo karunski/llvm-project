@@ -64,14 +64,15 @@ let Defs=[A],Uses=[M],hasSideEffects=false in {
   def LDAi8 : InstImm8<0xA9, (outs RegsA8:$dst), (ins UnsignedImm8Operand:$const),
                       "LONGA OFF\n\tLDA\t$const", [(set RegsA8:$dst, (load imm:$const))]>;
 }
-let Defs=[C],Uses=[M],mayLoad=1,hasSideEffects=true,isReMaterializable=1 in {
-  def LDAi : InstImm16<0xA9, (outs), (ins UnsignedImm16Operand:$const),
-                       "LDA\t$const", [(set C, imm:$const)]>;
-}
-
-def LDAsr  : WDCLoadInstructionStackRelative<0xA3, "LDA">;
 
 let mayLoad=1,hasSideEffects=0 in {
+  let Defs=[C],Uses=[M] in {
+    let isReMaterializable=1 in {
+      def LDAi : InstImm16<0xA9, (outs), (ins UnsignedImm16Operand:$const),
+                        "LDA\t$const", [(set C, imm:$const)]>;
+    }
+    def LDAdp : InstDrctPg<0xA5, (outs), (ins OprndAddr8:$addr), "LDA\t$addr", [(set C, (load PatternDp:$addr))]>;
+  }
   let Defs=[X] in {
     def LDXdp : InstDrctPg<0xA6, (outs), (ins OprndAddr8:$addr), "LDX\t$addr", [(set X, (load PatternDp:$addr))]>;
   }

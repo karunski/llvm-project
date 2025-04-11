@@ -258,21 +258,6 @@ class WDCStackInstruction<bits<8> opcode, string asmstr>
 {
 }
 
-class WDCLoadInstructionStackRelative<
-  bits<8> opcode,
-  string asmstr>
-: InstStkRel<
-    opcode,
-    (outs RegsA16:$dst),
-    (ins StackOffsetOperand:$spoffset),
-    !strconcat(asmstr, "\t$spoffset"),
-    [(set RegsA16:$dst, (load frameIndexPattern:$spoffset))]>
-{
-  let DisableEncoding = "$dst";
-  let canFoldAsLoad = 1;
-}
-
-
 class InstructionLogicStackRelative<
   bits<8> opcode,
   string  asmstr,

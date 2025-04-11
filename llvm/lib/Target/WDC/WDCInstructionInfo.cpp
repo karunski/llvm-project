@@ -188,14 +188,15 @@ void llvm::WDCInstrInfo::loadRegFromStack(MachineBasicBlock &basicBlock,
         .addFrameIndex(FrameIndex);
     return;
   }
+  
+  if (DestReg == WDC::A) {
+    BuildMI(basicBlock, blockIter, debugLoc, get(WDC::LDAdp)).addFrameIndex(FrameIndex);
+    return;
+  }
 
-  const auto MMO = GetMemOperand(basicBlock, FrameIndex, MachineMemOperand::MOLoad);
-  const auto Opc = WDC::LDAsr;
-  assert(Opc && "Register class not handled!");
-  BuildMI(basicBlock, blockIter, debugLoc, get(Opc), DestReg)
-      .addFrameIndex(FrameIndex)
-      .addImm(Offset)
-      .addMemOperand(MMO);
+  // const auto MMO = GetMemOperand(basicBlock, FrameIndex, MachineMemOperand::MOLoad);
+  // const auto Opc = WDC::LDAdp;
+  assert(false && "Register class not handled!");
 }
 
 MachineInstr *llvm::WDCInstrInfo::foldMemoryOperandImpl(
