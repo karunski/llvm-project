@@ -126,7 +126,7 @@ void llvm::WDCInstrInfo::adjustStackPtr(unsigned SP, int64_t amount,
       // only if in 8-bit A mode 
       //BuildMI(MBB, I, debugLoc, get(WDC::REP), WDC::P).addImm(0x20);
       BuildMI(MBB, I, debugLoc, get(WDC::TSC));
-      BuildMI(MBB, I, debugLoc, get(WDC::SBCi)).addImm(amount);
+      BuildMI(MBB, I, debugLoc, get(WDC::SBCi), WDC::C).addReg(WDC::C).addImm(amount);
       BuildMI(MBB, I, debugLoc, get(WDC::TCS));
     }
   }
@@ -141,7 +141,7 @@ void llvm::WDCInstrInfo::adjustStackPtr(unsigned SP, int64_t amount,
       // ONly if in 8-bit a mode.
       //BuildMI(MBB, I, debugLoc, get(WDC::REP), WDC::P).addImm(0x20);
       BuildMI(MBB, I, debugLoc, get(WDC::TSC));
-      BuildMI(MBB, I, debugLoc, get(WDC::ADCi)).addImm(amount);
+      BuildMI(MBB, I, debugLoc, get(WDC::ADCi), WDC::C).addReg(WDC::C).addImm(amount);
       BuildMI(MBB, I, debugLoc, get(WDC::TCS));
     }
   }
