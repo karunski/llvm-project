@@ -57,12 +57,14 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::Wrapper:           return "WDCISD::Wrapper";
   case WDCISD::ADCi:              return "WDCISD::ADCi";
   case WDCISD::ADCsr:             return "WDCISD::ADCsr";
+  case WDCISD::ADD:               return "WDCISD::ADD";
   case WDCISD::ADDi:              return "WDCISD::ADDi";
   case WDCISD::ADDsr:             return "WDCISD::ADDsr";
   case WDCISD::ANDsr:             return "WDCISD::ANDsr";
   case WDCISD::EORsr:             return "WDCISD::EORsr";
   case WDCISD::SETCCsr:           return "WDCISD::SETCCsr";
-  case WDCISD::SBCsr:             return "WDCISD::SBCsr";
+  case WDCISD::SBC:               return "WDCISD::SBC";
+  case WDCISD::SUB:               return "WDCISD::SUB";
   case WDCISD::ORAsr:             return "WDCISD::ORAsr";
   case WDCISD::LDAdpil:           return "WDCISD::LDAdpil";
   case WDCISD::LDAi:              return "WDCISD::LDAi";
@@ -272,13 +274,8 @@ WDCTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
 
 SDValue llvm::WDCTargetLowering::LowerAdd(SDValue node, const SDLoc & debugLoc, SelectionDAG & DAG) const {
 
-  if (const auto loweredToStackRel = LowerStackRelativeOperand(node, DAG, WDCISD::ADCsr); loweredToStackRel) {
-    const auto chVl = loweredToStackRel.getOperand(0);
-    const auto chVlTy = chVl.getSimpleValueType();
-    assert(chVlTy == MVT::Other && "expecting chain operand as first operand to ADCsr");
-    const auto CLCNode = DAG.getNode(WDCISD::CLC, debugLoc, chVlTy, chVl);
-    const auto adcVlTy = loweredToStackRel.getValueType();
-    return DAG.getNode(WDCISD::ADCsr, debugLoc, {adcVlTy, chVlTy}, {CLCNode, loweredToStackRel.getOperand(1), loweredToStackRel.getOperand(2)});
+  if (const auto loweredToStackRel = LowerStackRelativeOperand(node, DAG, WDCISD::ADD); loweredToStackRel) {
+    return loweredToStackRel;
   }
 
   const SDValue lhs = node.getOperand(0);
@@ -309,13 +306,8 @@ SDValue llvm::WDCTargetLowering::LowerAdd(SDValue node, const SDLoc & debugLoc, 
 }
 
 SDValue llvm::WDCTargetLowering::LowerSub(SDValue node, const SDLoc & debugLoc, SelectionDAG & DAG) const {
-  if (const auto loweredToStackRel = LowerStackRelativeOperand(node, DAG, WDCISD::SBCsr); loweredToStackRel) {
-    const auto chVl = loweredToStackRel.getOperand(0);
-    const auto chVlTy = chVl.getSimpleValueType();
-    assert(chVlTy == MVT::Other && "expecting chain operand as first operand to ADCsr");
-    const auto CLCNode = DAG.getNode(WDCISD::SEC, debugLoc, chVlTy, chVl);
-    const auto adcVlTy = loweredToStackRel.getValueType();
-    return DAG.getNode(WDCISD::SBCsr, debugLoc, {adcVlTy, chVlTy}, {CLCNode, loweredToStackRel.getOperand(1), loweredToStackRel.getOperand(2)});
+  if (const auto loweredToStackRel = LowerStackRelativeOperand(node, DAG, WDCISD::SUB); loweredToStackRel) {
+    return loweredToStackRel;
   }
 
   return {};

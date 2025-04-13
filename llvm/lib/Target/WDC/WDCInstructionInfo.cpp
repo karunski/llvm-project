@@ -85,6 +85,9 @@ bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   switch (instr) {
   default:
     return false;
+  case WDC::ADDdp:
+    expandADDdp(MBB, MI);
+    break;
   case WDC::RetRTL:
     expandRTL(MBB, MI);
     break;
@@ -96,6 +99,9 @@ bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     break;
   case WDC::SRA:
     expandSRA(MBB, MI);
+    break;
+  case WDC::SUBdp:
+    expandSUBdp(MBB, MI);
     break;
   case WDC::TCA:
     expandTCA(MBB, MI);
@@ -206,8 +212,26 @@ MachineInstr *llvm::WDCInstrInfo::foldMemoryOperandImpl(
   return nullptr;
 }
 
-void llvm::WDCInstrInfo::expandRTL(MachineBasicBlock &MBB,
+void llvm::WDCInstrInfo::expandADDdp(MachineBasicBlock &MBB,
                                      MachineBasicBlock::iterator I) const {
+  const auto dbgLoc = I->getDebugLoc();
+  const auto stackOprnd = I->getOperand(2);
+  assert(stackOprnd.isImm() && "Expected immediate operand for ADDdp!");
+  BuildMI(MBB, I, dbgLoc, get(WDC::CLC));
+  BuildMI(MBB, I, dbgLoc, get(WDC::ADCdp), WDC::C).addReg(WDC::C).add(stackOprnd);
+}
+
+void llvm::WDCInstrInfo::expandSUBdp(MachineBasicBlock &MBB,
+                                     MachineBasicBlock::iterator I) const {
+  const auto dbgLoc = I->getDebugLoc();
+  const auto stackOprnd = I->getOperand(2);
+  assert(stackOprnd.isImm() && "Expected immediate operand for SUBdp!");
+  BuildMI(MBB, I, dbgLoc, get(WDC::SEC));
+  BuildMI(MBB, I, dbgLoc, get(WDC::SBCdp), WDC::C).addReg(WDC::C).add(stackOprnd);
+}
+
+void llvm::WDCInstrInfo::expandRTL(MachineBasicBlock &MBB,
+                                   MachineBasicBlock::iterator I) const {
   BuildMI(MBB, I, I->getDebugLoc(), get(WDC::RTL));
 }
 
