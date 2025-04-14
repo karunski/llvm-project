@@ -100,6 +100,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::ROTL, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SHL,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SRA,  MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::SRL,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::XOR,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SETCC, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::GlobalAddress, MVT::i32, LegalizeAction::Custom);
@@ -340,18 +341,50 @@ SDValue llvm::WDCTargetLowering::LowerStackRelativeOperand(SDValue node, Selecti
 SDValue llvm::WDCTargetLowering::ExpandShift(SDValue node, SelectionDAG & DAG, unsigned targetOpcode) const {  
   if (const auto shiftAmtNode = dyn_cast<ConstantSDNode>(node.getOperand(1).getNode()); shiftAmtNode) {
     const auto debugLoc = SDLoc{node};
-    
-    // Shift by one; which is legal for this architecture
-    SDValue machineASLNode{DAG.getMachineNode(targetOpcode, debugLoc, {node.getValueType()}, {node.getOperand(0)}), 0};
+    const auto srcNd = node.getOperand(0);
+    const auto shiftAmt = shiftAmtNode->getZExtValue();
+    const auto valueTy = node.getValueType();
 
-    if (shiftAmtNode->isOne()) {
-      return machineASLNode;
+    if (shiftAmt >= 8) {
+      // Use a swap to get an 8-bit shift or rotate.
+      const auto swapNd = DAG.getNode(ISD::BSWAP, debugLoc, valueTy, srcNd);
+      const auto maskedNd = [swapNd, targetOpcode, &DAG, &debugLoc, valueTy]() {
+        unsigned mask = 0xFFFF;
+
+        switch(targetOpcode) {
+          default:
+            assert(false && "Unhandled opcode for expanding shift operation.");
+            [[fallthrough]];
+          case WDC::ROL:
+            return swapNd; // don't mask anything for a rotate.
+          case WDC::ASL:
+            mask = 0xFF00u;
+            break;
+          case WDC::LSR:
+          case WDC::SRA:
+            mask = 0x00FFu;
+            break;
+        }
+
+        const auto maskValNd = DAG.getConstant(mask, debugLoc, valueTy);
+        return DAG.getNode(ISD::AND, debugLoc, valueTy, {swapNd, maskValNd});
+      }();
+      
+      if (shiftAmt == 8) { return maskedNd; }
+
+      return DAG.getNode(
+          node.getOpcode(), debugLoc, valueTy,
+          {maskedNd, DAG.getConstant(shiftAmt - 8, debugLoc, MVT::i16)});
     }
-    else {
-      // attach another node for shiftamount - 1.  It will get lowered on the next iteration (or it will be shift by one)
-      return DAG.getNode(node.getOpcode(), debugLoc, {node.getValueType()},
-                  {machineASLNode, DAG.getConstant(shiftAmtNode->getAsZExtVal() - 1, debugLoc, MVT::i16)});
-    }
+
+    // Shift by one; which is legal for this architecture
+    SDValue machineASLNode{DAG.getMachineNode(targetOpcode, debugLoc, {valueTy}, {srcNd}), 0};
+
+    if (shiftAmt == 1) { return machineASLNode; }
+
+    // attach another node for shiftamount - 1.  It will get lowered on the next iteration (or it will be shift by one)
+    return DAG.getNode(node.getOpcode(), debugLoc, {valueTy},
+                {machineASLNode, DAG.getConstant(shiftAmt - 1, debugLoc, MVT::i16)});
   }
   return TargetLowering::LowerOperation(node, DAG);
 }
@@ -380,6 +413,9 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
   }
   else if (opcode == ISD::SRA) {
     return ExpandShift(node, DAG, WDC::SRA);
+  }
+  else if (opcode == ISD::SRL) {
+    return ExpandShift(node, DAG, WDC::LSR);
   }
   else if (opcode == ISD::XOR) {
     return LowerStackRelativeOperand(node, DAG, WDCISD::EORsr);

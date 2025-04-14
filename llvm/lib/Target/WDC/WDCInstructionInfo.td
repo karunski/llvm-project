@@ -95,9 +95,11 @@ let mayLoad=1,hasSideEffects=0 in {
 def LEAsr  : InstPseudo<(outs RegsA16:$dst), (ins StackOffsetOperand:$frameIndex),
                         [(set RegsA16:$dst, (LEANode frameIndexPattern:$frameIndex))]>;
 
-def LSR : InstImpl<0x4A, (outs RegsA16:$dst), (ins RegsA16:$src),
-                                "LSR\tA", 
-                                [(set RegsA16:$dst, (srl RegsA16:$src, OnePattern))]>;
+let Constraints="$dst = $src", Uses=[M,Carry], Defs=[Carry] in {
+  def LSR : InstImpl<0x4A, (outs RegsA16:$dst), (ins RegsA16:$src),
+                                  "LSR\tA", 
+                                  [(set RegsA16:$dst, (srl RegsA16:$src, OnePattern))]>;
+}
 
 def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
 def ORAsr  : InstructionLogicStackRelative<0x03, "ORA", ORAsrNode>;
@@ -150,8 +152,10 @@ let Defs=[Carry],Constraints="$src = $dst" in {
   }
 }
 
-def SRA : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src),
+let Constraints="$src = $dst" in {
+  def SRA : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src),
                          [(set RegsA16:$dst, (sra RegsA16:$src, OnePattern))]>;
+}
 
 let mayStore=true, Uses=[M],hasSideEffects=false in {
   def STAa   : InstAbs<0x8D,     (outs), (ins RegsA16:$src, OprndAddr16:$addr),  "STA\t$addr",   
@@ -195,8 +199,10 @@ let Defs=[C],Uses=[X] in {
   def TXA : InstImpl<0x8A, (outs), (ins), "TXA", []>;
 }
 
-def XBA : InstImpl<0xEB, (outs RegsA16:$dst), (ins RegsA16:$src),
-                                "XBA", [(set RegsA16:$dst, (bswap RegsA16:$src))]>;
+let Constraints="$dst = $src" in {
+  def XBA : InstImpl<0xEB, (outs RegsA16:$dst), (ins RegsA16:$src),
+                     "XBA", [(set RegsA16:$dst, (bswap RegsA16:$src))]>;
+}
 
 // Small immediates
 def : Pat<(globaladdr:$addr), (imm:$addr)>;
