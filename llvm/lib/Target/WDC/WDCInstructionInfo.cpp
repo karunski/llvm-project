@@ -248,13 +248,19 @@ void llvm::WDCInstrInfo::expandSetM(MachineBasicBlock &MBB, MachineBasicBlock::i
 }
 
 void llvm::WDCInstrInfo::expandSRA(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const {
-  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::CMPi)).addReg(WDC::P).addReg(WDC::A).addImm(0x8000);
+  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::CMPi)).addReg(WDC::P).addReg(WDC::C).addImm(0x8000);
   BuildMI(MBB, I, I->getDebugLoc(), get(WDC::ROR));
 }
 
 void llvm::WDCInstrInfo::expandROTL(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const {
-  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::ASL));
-  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::ADCi)).addReg(WDC::A).addReg(WDC::A).addImm(0);
+  const auto resOprnd = I->getOperand(0);
+  assert(resOprnd.isReg() && "Expected register operand for ROTL result");
+  const auto resReg = resOprnd.getReg();
+  const auto srcOprnd = I->getOperand(1);
+  assert(srcOprnd.isReg() && "Expected register operand for ROTL source");
+  const auto srcReg = srcOprnd.getReg();
+  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::ASL), resReg).addReg(srcReg);
+  BuildMI(MBB, I, I->getDebugLoc(), get(WDC::ADCi), resReg).addReg(srcReg).addImm(0);
 }
 
 void llvm::WDCInstrInfo::expandTCA(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const {

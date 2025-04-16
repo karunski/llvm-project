@@ -355,7 +355,7 @@ SDValue llvm::WDCTargetLowering::ExpandShift(SDValue node, SelectionDAG & DAG, u
           default:
             assert(false && "Unhandled opcode for expanding shift operation.");
             [[fallthrough]];
-          case WDC::ROL:
+          case WDC::ROTL:
             return swapNd; // don't mask anything for a rotate.
           case WDC::ASL:
             mask = 0xFF00u;

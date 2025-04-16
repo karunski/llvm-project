@@ -116,13 +116,17 @@ def PLB : WDCStackInstruction<0xAB, "PLB">;
 def PLD : WDCStackInstruction<0x2B, "PLD">;
 def PLP : WDCStackInstruction<0x28, "PLP">;
 
-def ROL : InstImpl<0x2a, (outs RegsA16:$dst), (ins RegsA16:$src),
-                                "ROL\tA", []>;
-def ROR : InstImpl<0x6A, (outs RegsA16:$dst), (ins RegsA16:$src),
-                                "ROR\tA", []>;
+let Constraints="$src = $dst",Uses=[M,C] in {
+  def ROL : InstImpl<0x2a, (outs RegsA16:$dst), (ins RegsA16:$src),
+                                  "ROL\tA", []>;
+  def ROR : InstImpl<0x6A, (outs RegsA16:$dst), (ins RegsA16:$src),
+                                  "ROR\tA", []>;
+}
 
-def ROTL : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src),
+let Constraints="$dst = $src",Uses=[M] in {
+  def ROTL : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src),
                          [(set RegsA16:$dst, (rotl RegsA16:$src, OnePattern))]>;
+}
 
 let Defs=[M],hasSideEffects=false in {
   def REP : InstImm8<0xC2, (outs StatusReg:$P), (ins UnsignedImm8Operand:$const), "REP\t$const", []>;
