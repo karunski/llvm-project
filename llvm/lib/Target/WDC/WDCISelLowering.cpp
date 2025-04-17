@@ -62,7 +62,7 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::ADDsr:             return "WDCISD::ADDsr";
   case WDCISD::ANDsr:             return "WDCISD::ANDsr";
   case WDCISD::EORsr:             return "WDCISD::EORsr";
-  case WDCISD::SETCCsr:           return "WDCISD::SETCCsr";
+  case WDCISD::SETCC:             return "WDCISD::SETCC";
   case WDCISD::SBC:               return "WDCISD::SBC";
   case WDCISD::SUB:               return "WDCISD::SUB";
   case WDCISD::ORAsr:             return "WDCISD::ORAsr";
@@ -89,7 +89,6 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   addRegisterClass(MVT::i16, &WDC::IndexRegsRegClass);
   addRegisterClass(MVT::i8, &WDC::StatusRegRegClass);
   addRegisterClass(MVT::i32, &WDC::FakeRegsRegClass);
-  addRegisterClass(MVT::i1, &WDC::FlagsRegClass);
 
   setBooleanContents(TargetLowering::ZeroOrOneBooleanContent);
 
@@ -421,7 +420,7 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
     return LowerStackRelativeOperand(node, DAG, WDCISD::EORsr);
   }
   else if (opcode == ISD::SETCC) {
-    return LowerStackRelativeOperand(node, DAG, WDCISD::SETCCsr);
+    return LowerSetCC(node, dbgLoc, DAG);
   }
   else if (opcode == ISD::GlobalAddress) {
     return LowerGlobalAddress(cast<GlobalAddressSDNode>(node.getNode()), dbgLoc, DAG);
@@ -437,6 +436,25 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
   }
 
   return TargetLowering::LowerOperation(node, DAG);
+}
+
+SDValue llvm::WDCTargetLowering::LowerSetCC(SDValue setCCNode, const SDLoc & dbgLoc, SelectionDAG & DAG) const {
+  const auto lhsVl = setCCNode.getOperand(0);
+  const auto rhsVl = setCCNode.getOperand(1);
+  const auto condCodeVl = setCCNode.getOperand(2);
+  if (const auto loadNode = dyn_cast<LoadSDNode>(rhsVl.getNode()); loadNode) {
+    const auto loadBasePtrValue = loadNode->getBasePtr();
+    if (const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(loadBasePtrValue.getNode()); frameIndexNode) {
+      // First operand is the chain from the load that is folding
+      // Second operand is the accumulator register.
+      // The instruction will directly load from this frame index base value. This effectively replaces operand 1.
+      // transfer condition code into the new node.
+      // The value will be implicitly extended to the word size. (not an i1 like setcc assumes)
+      return DAG.getNode(
+          WDCISD::SETCC, dbgLoc, {lhsVl.getValueType(), MVT::Other},
+          {loadNode->getChain(), lhsVl, loadBasePtrValue, condCodeVl});
+    }
+  }  return SDValue{};
 }
 
 SDValue llvm::WDCTargetLowering::LowerGlobalAddress(GlobalAddressSDNode * glblAddrNd, const SDLoc & dbgLoc, SelectionDAG & DAG) const {

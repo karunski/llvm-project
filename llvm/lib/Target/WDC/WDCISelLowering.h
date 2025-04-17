@@ -71,7 +71,7 @@ namespace llvm {
       ADDi,
       ANDsr,
       EORsr,
-      SETCCsr,
+      SETCC,
       SUB,
       SBC,
       ORAsr,
@@ -186,6 +186,9 @@ namespace llvm {
                         const SDLoc &dl, SelectionDAG &DAG) const override;
 
     SDValue LowerOperation(SDValue node, SelectionDAG &DAG) const override;
+
+    SDValue LowerSetCC(SDValue setCCnd, const SDLoc &dbgLoc,
+                       SelectionDAG &DAG) const;
 
     SDValue LowerGlobalAddress(GlobalAddressSDNode *glblAddrNd, const SDLoc & dbgLoc,
                                SelectionDAG &DAG) const;

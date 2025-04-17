@@ -285,11 +285,11 @@ void llvm::WDCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   if (SrcReg == WDC::P) {
     // push 8-bit status register on to the stack
     BuildMI(MBB, MI, dbgLoc, get(WDC::PHP));
-    if (DestReg == WDC::A) {
+    if (DestReg == WDC::C) {
       // Set the Accumulator to 8 bits; pull the byte off the stack, and reset the accumulator back to 16 bit.
-      BuildMI(MBB, MI, dbgLoc, get(WDC::SEP)).addImm(0b00100000);
+      BuildMI(MBB, MI, dbgLoc, get(WDC::SEP), WDC::P).addImm(0b00100000);
       BuildMI(MBB, MI, dbgLoc, get(WDC::PLA));
-      BuildMI(MBB, MI, dbgLoc, get(WDC::REP)).addImm(0b00100000);
+      BuildMI(MBB, MI, dbgLoc, get(WDC::REP), WDC::P).addImm(0b00100000);
       return;
     }
   }

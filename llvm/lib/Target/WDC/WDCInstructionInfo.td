@@ -48,10 +48,14 @@ def ASL : InstImpl<0x0A, (outs RegsA16:$dst), (ins RegsA16:$src),
                                  "ASL\tA", [(set RegsA16:$dst, (shl RegsA16:$src, OnePattern))]>;
 
 def CMPi : InstImm16<0xc9, (outs StatusReg:$sr), (ins RegsA16:$src, UnsignedImm16Operand:$const),
-                                   "CMP\t$const", []>;
+                                  "CMP\t$const", []>;
 def CMPsr : InstStkRel<0xc3, (outs StatusReg:$sr),
                                         (ins RegsA16:$src, StackOffsetOperand:$spoffset),
                                         "CMP\t$spoffset", []>;
+def CMPdp : InstDrctPg<0xc5, (outs StatusReg:$sr),
+                              (ins RegsA16:$src, OprndAddr8:$addr),
+                              "CMP\t$addr", []>;
+
 
 def EORi : WDCLogicInstructionImmediate<0x49, xor, "EOR", UnsignedImm16Operand>;
 def EORsr : InstructionLogicStackRelative<0x43, "EOR", EORsrNode>;
@@ -216,10 +220,10 @@ def : Pat<(seteq RegsA16:$src, UnsignedImm16Pattern:$const), (
 
 // SETCC comparisons between the accumulator and a frame index
 // For seteq (setne comes from this as well)
-def : Pat<(SETCCsrNode RegsA16:$src, frameIndexPattern:$spoffset, SETEQ),
-          (ANDi (LSR (COPY_TO_REGCLASS (CMPsr RegsA16:$src, $spoffset), RegsA16)), 1)>;
-def : Pat<(SETCCsrNode RegsA16:$src, frameIndexPattern:$spoffset, SETGE),
-          (ANDi (TCA (CMPsr RegsA16:$src, $spoffset)), 1)>;
+def : Pat<(SETCCNode RegsA16:$src, PatternDp:$addr, SETEQ),
+          (ANDi (LSR (COPY_TO_REGCLASS (CMPdp RegsA16:$src, $addr), RegsA16)), 1)>;
+def : Pat<(SETCCNode RegsA16:$src, PatternDp:$addr, SETGE),
+          (ANDi (TCA (CMPdp RegsA16:$src, $addr)), 1)>;
 
 def mem_ea : Operand<iPTR> {
   let PrintMethod = "printMemOperandEA";

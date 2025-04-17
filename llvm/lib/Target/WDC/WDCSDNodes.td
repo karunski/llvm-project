@@ -12,8 +12,8 @@ def ADCsrNode : SDNode<"WDCISD::ADCsr", TypeProfRegMem, [SDNPHasChain, SDNPOptIn
 def ANDsrNode : SDNode<"WDCISD::ANDsr", BinaryOpNode, [SDNPHasChain]>;
 def CLCNode   : SDNode<"WDCISD::CLC", SDTypeProfile<0, 0, []>, [SDNPHasChain, SDNPOutGlue]>;
 def EORsrNode : SDNode<"WDCISD::EORsr", BinaryOpNode, [SDNPHasChain]>;
-def SETCCsrNode : SDNode<"WDCISD::SETCCsr", 
-                         SDTypeProfile<1, 3, [SDTCisInt<0>, SDTCisInt<1>, /*, SDTCisPtr*/ SDTCisVT<3, OtherVT>]>, 
+def SETCCNode : SDNode<"WDCISD::SETCC", 
+                         SDTypeProfile<1, 3, [SDTCisInt<0>, SDTCisInt<1>, SDTCisPtrTy<2>, SDTCisVT<3, OtherVT>]>, 
                          [SDNPHasChain]>;
 def SBCNode : SDNode<"WDCISD::SBC", TypeProfRegMem, [SDNPHasChain, SDNPOutGlue, SDNPInGlue]>;
 def SUBNode : SDNode<"WDCISD::SUB", TypeProfRegMem, [SDNPHasChain, SDNPOutGlue]>;
