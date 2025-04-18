@@ -170,7 +170,7 @@ void llvm::WDCInstrInfo::storeRegToStack(
     return;
   }
 
-  const auto Opc = WDC::STAsr;
+  const auto Opc = WDC::STAdp;
   assert(Opc && "Register class not handled!");
 
   BuildMI(MBB, MI, DebugLoc{}, get(Opc))
@@ -195,8 +195,8 @@ void llvm::WDCInstrInfo::loadRegFromStack(MachineBasicBlock &basicBlock,
     return;
   }
   
-  if (DestReg == WDC::A) {
-    BuildMI(basicBlock, blockIter, debugLoc, get(WDC::LDAdp)).addFrameIndex(FrameIndex);
+  if (RC == &WDC::RegsA16RegClass) {
+    BuildMI(basicBlock, blockIter, debugLoc, get(WDC::LDAdp), DestReg).addFrameIndex(FrameIndex);
     return;
   }
 
