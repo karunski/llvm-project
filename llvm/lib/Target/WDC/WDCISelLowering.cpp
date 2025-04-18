@@ -272,16 +272,44 @@ WDCTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
   return DAG.getNode(WDCISD::Ret, DL, MVT::Other, RetOps);
 }
 
+static SDValue TryFoldGlobalAddressOperand(SDValue node, bool commutative, const SDLoc & debugLoc, SelectionDAG & dag, WDCISD::NodeType wdcNode) {
+  auto lhsOprndNo = 0u;
+  auto rhsOprndNo = 1u;
+
+  while (true) {
+    const auto rhsOperand = node.getOperand(rhsOprndNo);
+    if (const auto loadNode = dyn_cast<LoadSDNode>(rhsOperand.getNode()); loadNode) {
+      const auto loadBasePtrValue = loadNode->getBasePtr();
+      if (const auto globalAddrNode = dyn_cast<GlobalAddressSDNode>(loadBasePtrValue.getNode()); globalAddrNode) {
+        const auto globalAddr = globalAddrNode->getGlobal();
+        return dag.getNode(wdcNode, debugLoc, {node.getValueType(), MVT::Other},
+                           {loadNode->getChain(), node.getOperand(lhsOprndNo),
+                            loadBasePtrValue});
+      }
+    }
+
+    if (commutative && lhsOprndNo == 0u) {
+      // Swap the operands and try again.
+      std::swap(lhsOprndNo, rhsOprndNo);
+      continue;
+    }
+
+    return {};
+  }
+
+  return {};
+}
+
 SDValue llvm::WDCTargetLowering::LowerAdd(SDValue node, const SDLoc & debugLoc, SelectionDAG & DAG) const {
+  SDValue lhs = node.getOperand(0);
+  SDValue rhs = node.getOperand(1);
+
+  const auto rhsNdTy = static_cast<ISD::NodeType>(rhs.getOpcode());
 
   if (const auto loweredToStackRel = LowerStackRelativeOperand(node, DAG, WDCISD::ADD); loweredToStackRel) {
     return loweredToStackRel;
   }
 
-  const SDValue lhs = node.getOperand(0);
-  const SDValue rhs = node.getOperand(1);
-  const auto rhsNdTy = static_cast<ISD::NodeType>(rhs.getOpcode());
-  
   if (rhsNdTy == ISD::Constant) {
     const auto rhsNd = dyn_cast<ConstantSDNode>(rhs.getNode());
     if (rhsNd->isOne()) {
@@ -289,9 +317,11 @@ SDValue llvm::WDCTargetLowering::LowerAdd(SDValue node, const SDLoc & debugLoc, 
       // instead of the ADC instruction.  This is a 1-byte instruction.
       return {};// don't modify it.
     }
-    const auto CLCNode = DAG.getNode(WDCISD::CLC, debugLoc, MVT::Other, DAG.getUNDEF(MVT::Other));
-    return DAG.getNode(WDCISD::ADCi, debugLoc, {node.getValueType()},
-                        {CLCNode, lhs, rhs});
+    return DAG.getNode(WDCISD::ADD, debugLoc, {node.getValueType()}, {lhs, rhs});
+  }
+
+  if (const auto loweredToAbsLong = TryFoldGlobalAddressOperand(node, true, debugLoc, DAG, WDCISD::ADD); loweredToAbsLong) {
+    return loweredToAbsLong;
   }
 
   // 65816 doesn't have any instructions that take registers as operands.
@@ -314,18 +344,22 @@ SDValue llvm::WDCTargetLowering::LowerSub(SDValue node, const SDLoc & debugLoc, 
 }
 
 SDValue llvm::WDCTargetLowering::LowerStackRelativeOperand(SDValue node, SelectionDAG & DAG, WDCISD::NodeType wdcNode) const {
+  return LowerStackRelativeOperand(node, 1, DAG, wdcNode);
+}
+
+SDValue llvm::WDCTargetLowering::LowerStackRelativeOperand(SDValue node, unsigned oprndNo, SelectionDAG & DAG, WDCISD::NodeType wdcNode) const {
   const SDLoc debugLoc{node};
 
   // All instructions are effectively using Accumulator as the first operand, and Memory as the second.
   // Therefore, we have to try to fold the load for the memory operand into the instruction if possible.
   // The resulting wdcNode must take a chain operand, which will be assigned to whatever the load was chained to.
-  const auto rhsOperand = node.getOperand(1);  
+  const auto rhsOperand = node.getOperand(oprndNo);
   if (const auto loadNode = dyn_cast<LoadSDNode>(rhsOperand.getNode()); loadNode) {
     const auto loadBasePtrValue = loadNode->getBasePtr();
     if (const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(loadBasePtrValue.getNode()); frameIndexNode) {
       SmallVector<SDValue> newOperands;
       newOperands.push_back(loadNode->getChain()); // First operand is the chain from the load that is folding
-      newOperands.push_back(node.getOperand(0)); // Second operand is the accumulator register.
+      newOperands.push_back(node.getOperand(oprndNo == 1 ? 0 : 1)); // Second operand is the accumulator register.
       newOperands.push_back(loadBasePtrValue); // The instruction will directly load from this frame index base value.
                                                   // This effectively replaces operand 1.
       for (unsigned opNum = 2; opNum < node.getNumOperands(); opNum += 1) {// transfer any remaining operands into the new node
@@ -336,6 +370,8 @@ SDValue llvm::WDCTargetLowering::LowerStackRelativeOperand(SDValue node, Selecti
   }
   return {};
 }
+
+
 
 SDValue llvm::WDCTargetLowering::ExpandShift(SDValue node, SelectionDAG & DAG, unsigned targetOpcode) const {  
   if (const auto shiftAmtNode = dyn_cast<ConstantSDNode>(node.getOperand(1).getNode()); shiftAmtNode) {

@@ -30,9 +30,15 @@ let isAdd = 1,Defs=[Carry],Constraints="$src = $dst" in {
   let Uses=[M] in {
     def ADDdp : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$slot),
                            [(set RegsA16:$dst, (ADDNode RegsA16:$src, PatternDp:$slot))]>;
+    def ADDi : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, UnsignedImm16Operand:$const),
+                          [(set RegsA16:$dst, (ADDNode RegsA16:$src, UnsignedImm16Pattern:$const))]>;
+    def ADDal : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, OprndAbsLong:$addr),
+                           [(set RegsA16:$dst, (ADDNode RegsA16:$src, (Wrapper (tglobaladdr:$addr))))]>;
   }
 
   let Uses=[Carry,M] in {
+    def ADCal : InstAbsLong<0x6f, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAbsLong:$addr), "ADC\t$addr",
+                          [(set RegsA16:$dst, (addc RegsA16:$src, (Wrapper (tglobaladdr:$addr))))]>;
     def ADCdp : InstDrctPg<0x65, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$addr), "ADC\t$addr",
                           [(set RegsA16:$dst, (ADCsrNode RegsA16:$src, PatternDp:$addr))]>;
     def ADCi  : InstImm16<0x69, (outs RegsA16:$dst),  (ins RegsA16:$src, UnsignedImm16Operand:$const), "ADC\t$const", 

@@ -86,7 +86,13 @@ bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   default:
     return false;
   case WDC::ADDdp:
-    expandADDdp(MBB, MI);
+    expandADD(MBB, MI, WDC::ADCdp);
+    break;
+  case WDC::ADDi:
+    expandADD(MBB, MI, WDC::ADCi);
+    break;
+  case WDC::ADDal:
+    expandADD(MBB, MI, WDC::ADCal);
     break;
   case WDC::RetRTL:
     expandRTL(MBB, MI);
@@ -212,13 +218,15 @@ MachineInstr *llvm::WDCInstrInfo::foldMemoryOperandImpl(
   return nullptr;
 }
 
-void llvm::WDCInstrInfo::expandADDdp(MachineBasicBlock &MBB,
-                                     MachineBasicBlock::iterator I) const {
+void llvm::WDCInstrInfo::expandADD(MachineBasicBlock &MBB,
+                                   MachineBasicBlock::iterator I,
+                                   TargetOpcodeTy nativeAddOpc) const {
   const auto dbgLoc = I->getDebugLoc();
-  const auto stackOprnd = I->getOperand(2);
-  assert(stackOprnd.isImm() && "Expected immediate operand for ADDdp!");
+  const auto destOprnd = I->getOperand(0);
+  const auto lhsOprnd = I->getOperand(1);
+  const auto rhsOprnd = I->getOperand(2);
   BuildMI(MBB, I, dbgLoc, get(WDC::CLC));
-  BuildMI(MBB, I, dbgLoc, get(WDC::ADCdp), WDC::C).addReg(WDC::C).add(stackOprnd);
+  BuildMI(MBB, I, dbgLoc, get(nativeAddOpc)).add(destOprnd).add(lhsOprnd).add(rhsOprnd);
 }
 
 void llvm::WDCInstrInfo::expandSUBdp(MachineBasicBlock &MBB,

@@ -89,7 +89,8 @@ private:
   MachineMemOperand *GetMemOperand(MachineBasicBlock &MBB, int FI,
                                    MachineMemOperand::Flags Flags) const;
 
-  void expandADDdp(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
+  using TargetOpcodeTy = decltype(WDC::ADCi);
+  void expandADD(MachineBasicBlock &MBB, MachineBasicBlock::iterator I, TargetOpcodeTy) const;
   void expandSUBdp(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
   void expandRTL(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
   void expandSetM(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
