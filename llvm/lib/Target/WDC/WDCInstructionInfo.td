@@ -60,8 +60,8 @@ def CMPdp : InstDrctPg<0xc5, (outs StatusReg:$sr),
 def EORi : WDCLogicInstructionImmediate<0x49, xor, "EOR", UnsignedImm16Operand>;
 def EORsr : InstructionLogicStackRelative<0x43, "EOR", EORsrNode>;
 
-let isAdd = 1,Defs=[C],Uses=[C] in {
-  def INC : InstImpl<0x1A, (outs), (ins), "INC A", [(set C, (add C, OnePattern))]>;
+let isAdd = 1,Constraints="$dst = $src" in {
+  def INC : InstImpl<0x1A, (outs RegsA16:$dst), (ins RegsA16:$src), "INC A", [(set RegsA16:$dst, (add RegsA16:$src, OnePattern))]>;
 }
 
 let mayLoad=1 in {
@@ -169,7 +169,7 @@ let mayStore=true, Uses=[M],hasSideEffects=false in {
   def STAa   : InstAbs<0x8D,     (outs), (ins RegsA16:$src, OprndAddr16:$addr),  "STA\t$addr",   
                        [(store RegsA16:$src, NearGlobalPattern:$addr)]>;
   def STAal  : InstAbsLong<0x8F, (outs), (ins RegsA16:$src, OprndAbsLong:$addr), "STA\t$addr",   
-                       [(store RegsA16:$src, globaladdr:$addr)]>;
+                       [(store RegsA16:$src, (Wrapper (tglobaladdr:$addr)))]>;
   def STAdp  : InstDrctPg<0x85,  (outs), (ins RegsA16:$src, OprndAddr8:$addr),   "STA\t$addr",   
                        [(store RegsA16:$src, PatternDp:$addr)]>;
   def STAdpi : InstDrctPg<0x92,  (outs), (ins RegsA16:$src, OprndAddr8:$addr),   "STA\t($addr)", 
@@ -191,6 +191,7 @@ let mayStore=true,hasSideEffects=false in {
     def STZa  : InstAbs<0x9C,    (outs), (ins OprndAddr16:$addr), "STZ\t$addr", [(store PatternZero16, NearGlobalPattern:$addr)]>;
     def STZdp : InstDrctPg<0x64, (outs), (ins OprndAddr8:$addr),  "STZ\t$addr", [(store PatternZero16, PatternDp:$addr)]>;
   }
+  
 }
 
 let Defs=[X],Uses=[C] in {
