@@ -98,6 +98,8 @@ class WDCDAGToDAGISel : public SelectionDAGISel {
     }
 
     bool SelectDirectPage(SDValue frmIdxSDVal, SDValue &addr) {
+      const auto nodeType = static_cast<ISD::NodeType>(frmIdxSDVal.getOpcode());
+      if (nodeType != ISD::FrameIndex) { return false; }
       const auto & frmIdxNd = *cast<FrameIndexSDNode>(frmIdxSDVal.getNode());
       addr = CurDAG->getTargetFrameIndex(frmIdxNd.getIndex(), MVT::i8);
       return true;
