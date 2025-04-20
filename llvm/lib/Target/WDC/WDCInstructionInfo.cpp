@@ -106,6 +106,9 @@ bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   case WDC::SRA:
     expandSRA(MBB, MI);
     break;
+  case WDC::STGPdp:
+    expandSTGPdp(MBB, MI);
+    break;
   case WDC::SUBdp:
     expandSUBdp(MBB, MI);
     break;
@@ -176,7 +179,16 @@ void llvm::WDCInstrInfo::storeRegToStack(
     return;
   }
 
-  const auto Opc = WDC::STAdp;
+  if (RC == &WDC::RegsA16RegClass) {
+    BuildMI(MBB, MI, DebugLoc{}, get(WDC::STAdp))
+        .addReg(SrcReg, getKillRegState(isKill))
+        .addFrameIndex(FrameIndex)
+        .addImm(Offset)
+        .addMemOperand(MMO);
+    return;
+  }
+
+  const auto Opc = WDC::STGPdp;
   assert(Opc && "Register class not handled!");
 
   BuildMI(MBB, MI, DebugLoc{}, get(Opc))
@@ -193,16 +205,18 @@ void llvm::WDCInstrInfo::loadRegFromStack(MachineBasicBlock &basicBlock,
                                             const TargetRegisterInfo */*TRI*/,
                                             int64_t Offset) const {
   const auto debugLoc = blockIter != basicBlock.end() ? blockIter->getDebugLoc() : DebugLoc{};
+  MachineMemOperand *MMO = GetMemOperand(basicBlock, FrameIndex, MachineMemOperand::MOLoad);
 
   if (DestReg == WDC::X) {
     // Store the X register to the stack.
     BuildMI(basicBlock, blockIter, DebugLoc{}, get(WDC::LDXdp))
-        .addFrameIndex(FrameIndex);
+        .addFrameIndex(FrameIndex).addImm(Offset).addMemOperand(MMO);
     return;
   }
   
   if (RC == &WDC::RegsA16RegClass) {
-    BuildMI(basicBlock, blockIter, debugLoc, get(WDC::LDAdp), DestReg).addFrameIndex(FrameIndex);
+    BuildMI(basicBlock, blockIter, debugLoc, get(WDC::LDAdp), DestReg)
+      .addFrameIndex(FrameIndex).addImm(Offset).addMemOperand(MMO);
     return;
   }
 
@@ -216,6 +230,69 @@ MachineInstr *llvm::WDCInstrInfo::foldMemoryOperandImpl(
     MachineBasicBlock::iterator InsertPt, int FrameIndex, LiveIntervals *LIS,
     VirtRegMap *VRM) const {
   return nullptr;
+}
+
+Register llvm::WDCInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
+                                                 int &FrameIndex) const {
+  const auto opcode = static_cast<TargetOpcodeTy>(MI.getOpcode());
+  if (opcode == WDC::LDGPdp || opcode == WDC::LDAdp || opcode == WDC::LDXdp ||
+      opcode == WDC::LDYdp) {
+    FrameIndex = MI.getOperand(1).getIndex();
+    return MI.getOperand(0).getReg();
+  }
+  return 0;
+}
+
+Register llvm::WDCInstrInfo::isStoreToStackSlot(const MachineInstr &MI,
+                                                int &FrameIndex) const {
+  const auto opcode = static_cast<TargetOpcodeTy>(MI.getOpcode());
+  if (opcode == WDC::STGPdp || opcode == WDC::STAdp) {
+    FrameIndex = MI.getOperand(1).getIndex();
+    return MI.getOperand(0).getReg();
+  }
+  return 0;
+}
+
+Register llvm::WDCInstrInfo::isLoadFromStackSlotPostFE(const MachineInstr &MI,
+                                                       int &FrameIndex) const {
+  const auto opcode = static_cast<TargetOpcodeTy>(MI.getOpcode());
+  if (opcode == WDC::LDGPdp || opcode == WDC::LDAdp || opcode == WDC::LDXdp ||
+      opcode == WDC::LDYdp) {
+    return 0;
+  }
+  return 0;
+}
+
+Register llvm::WDCInstrInfo::isStoreToStackSlotPostFE(const MachineInstr &MI,
+                                                      int &FrameIndex) const {
+  const auto opcode = static_cast<TargetOpcodeTy>(MI.getOpcode());
+  if (opcode == WDC::STGPdp || opcode == WDC::STAdp) {
+    return 0;
+  }
+  return 0;
+}
+
+void llvm::WDCInstrInfo::expandSTGPdp(MachineBasicBlock& MBB, MachineBasicBlock::iterator MI) const {
+  const auto debugLoc = MI->getDebugLoc();
+  const auto srcOprnd = MI->getOperand(0);
+  const auto addrOprnd = MI->getOperand(1);
+  assert(srcOprnd.isReg() && "Expected register operand for STGPdp src!");
+  assert(addrOprnd.isImm() && "Expected immediate operand for STGPdp addr!");
+  const auto srcOprndReg = srcOprnd.getReg();
+  const auto instr = [srcOprndReg]() {
+    if (srcOprndReg == WDC::C) {
+      return WDC::STAdp;
+    }
+    if (srcOprndReg == WDC::X) {
+      return WDC::STXdp;
+    }
+    if (srcOprndReg == WDC::Y) {
+      return WDC::STYdp;
+    }
+    assert(false && "Unexpected register operand for STGPdp!");
+    return WDC::STAdp;
+  }();
+  BuildMI(MBB, MI, debugLoc, get(instr)).add(srcOprnd).add(addrOprnd);
 }
 
 void llvm::WDCInstrInfo::expandADD(MachineBasicBlock &MBB,

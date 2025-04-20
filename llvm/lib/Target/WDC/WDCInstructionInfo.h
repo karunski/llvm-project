@@ -86,6 +86,18 @@ private:
                                       LiveIntervals *LIS = nullptr,
                                       VirtRegMap *VRM = nullptr) const override;
 
+  Register isLoadFromStackSlot(const MachineInstr &MI,
+                                        int &FrameIndex) const override;
+  Register isStoreToStackSlot(const MachineInstr &MI,
+                                         int &FrameIndex) const override;
+  Register isLoadFromStackSlotPostFE(const MachineInstr &MI,
+                                               int &FrameIndex) const override;
+  Register isStoreToStackSlotPostFE(const MachineInstr &MI,
+                                                int &FrameIndex) const override;
+
+  void expandSTGPdp(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI) const;
+  void ExpandLDGPdp(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI) const;
+
   MachineMemOperand *GetMemOperand(MachineBasicBlock &MBB, int FI,
                                    MachineMemOperand::Flags Flags) const;
 
