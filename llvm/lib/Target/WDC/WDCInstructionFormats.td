@@ -155,6 +155,7 @@ def OprndAbsLong : Operand<iPTR> {
 // Pattern 
 def SignedImm16Pattern  : PatLeaf<(i16 imm), [{ return isInt<16>(N->getSExtValue()); }]>;
 def UnsignedImm16Pattern : PatLeaf<(i16 imm), [{ return isUInt<16>(N->getZExtValue()); }]>;
+def Imm16Pattern : PatLeaf<(i16 imm), [{ return isInt<16>(N->getSExtValue()) || isUInt<16>(N->getZExtValue()); }]>;
 def SignedImm8Pattern : PatLeaf<(imm), [{ return isInt<8>(N->getSExtValue()); }]>;
 def PatternZero16 : PatLeaf<(i16 imm), [{ return N->isZero(); }]>;
 def OnePattern : PatLeaf<(i16 imm), [{ return N->isOne(); }]>;

@@ -94,6 +94,9 @@ bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   case WDC::ADDal:
     expandADD(MBB, MI, WDC::ADCal);
     break;
+  case WDC::LDGPdp:
+    expandLDGPdp(MBB, MI);
+    break;
   case WDC::RetRTL:
     expandRTL(MBB, MI);
     break;
@@ -110,7 +113,10 @@ bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     expandSTGPdp(MBB, MI);
     break;
   case WDC::SUBdp:
-    expandSUBdp(MBB, MI);
+    expandSUB(MBB, MI, WDC::SBCdp);
+    break;
+  case WDC::SUBal:
+    expandSUB(MBB, MI, WDC::SBCal);
     break;
   case WDC::TCA:
     expandTCA(MBB, MI);
@@ -295,6 +301,30 @@ void llvm::WDCInstrInfo::expandSTGPdp(MachineBasicBlock& MBB, MachineBasicBlock:
   BuildMI(MBB, MI, debugLoc, get(instr)).add(srcOprnd).add(addrOprnd);
 }
 
+void llvm::WDCInstrInfo::expandLDGPdp(MachineBasicBlock &MBB,
+                                      MachineBasicBlock::iterator MI) const {
+  const auto debugLoc = MI->getDebugLoc();
+  const auto destOprnd = MI->getOperand(0);
+  const auto addrOprnd = MI->getOperand(1);
+  assert(destOprnd.isReg() && "Expected register operand for LDGPdp src!");
+  assert(addrOprnd.isImm() && "Expected immediate operand for LDGPdp addr!");
+  const auto destOprndReg = destOprnd.getReg();
+  const auto instr = [destOprndReg]() {
+    if (destOprndReg == WDC::C) {
+      return WDC::LDAdp;
+    }
+    if (destOprndReg == WDC::X) {
+      return WDC::LDXdp;
+    }
+    if (destOprndReg == WDC::Y) {
+      return WDC::LDYdp;
+    }
+    assert(false && "Unexpected register operand for LDGPdp!");
+    return WDC::LDAdp;
+  }();
+  BuildMI(MBB, MI, debugLoc, get(instr)).add(addrOprnd);
+}
+
 void llvm::WDCInstrInfo::expandADD(MachineBasicBlock &MBB,
                                    MachineBasicBlock::iterator I,
                                    TargetOpcodeTy nativeAddOpc) const {
@@ -306,13 +336,14 @@ void llvm::WDCInstrInfo::expandADD(MachineBasicBlock &MBB,
   BuildMI(MBB, I, dbgLoc, get(nativeAddOpc)).add(destOprnd).add(lhsOprnd).add(rhsOprnd);
 }
 
-void llvm::WDCInstrInfo::expandSUBdp(MachineBasicBlock &MBB,
-                                     MachineBasicBlock::iterator I) const {
+void llvm::WDCInstrInfo::expandSUB(MachineBasicBlock &MBB,
+                                     MachineBasicBlock::iterator I, TargetOpcodeTy nativeSubOpc) const {
   const auto dbgLoc = I->getDebugLoc();
-  const auto stackOprnd = I->getOperand(2);
-  assert(stackOprnd.isImm() && "Expected immediate operand for SUBdp!");
+  const auto destOprnd = I->getOperand(0);
+  const auto lhsOprnd = I->getOperand(1);
+  const auto rhsOprnd = I->getOperand(2);
   BuildMI(MBB, I, dbgLoc, get(WDC::SEC));
-  BuildMI(MBB, I, dbgLoc, get(WDC::SBCdp), WDC::C).addReg(WDC::C).add(stackOprnd);
+  BuildMI(MBB, I, dbgLoc, get(nativeSubOpc)).add(destOprnd).add(lhsOprnd).add(rhsOprnd);
 }
 
 void llvm::WDCInstrInfo::expandRTL(MachineBasicBlock &MBB,

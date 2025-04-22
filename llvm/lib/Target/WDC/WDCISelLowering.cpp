@@ -311,13 +311,7 @@ SDValue llvm::WDCTargetLowering::LowerAdd(SDValue node, const SDLoc & debugLoc, 
   }
 
   if (rhsNdTy == ISD::Constant) {
-    const auto rhsNd = dyn_cast<ConstantSDNode>(rhs.getNode());
-    if (rhsNd->isOne()) {
-      // If the rhs operand is a constant 1, we can use the INC instruction
-      // instead of the ADC instruction.  This is a 1-byte instruction.
-      return {};// don't modify it.
-    }
-    return DAG.getNode(WDCISD::ADD, debugLoc, {node.getValueType()}, {lhs, rhs});
+    return DAG.getNode(WDCISD::ADD, debugLoc, {node.getValueType()}, {DAG.getEntryNode(), lhs, rhs});
   }
 
   if (const auto loweredToAbsLong = TryFoldGlobalAddressOperand(node, true, debugLoc, DAG, WDCISD::ADD); loweredToAbsLong) {
@@ -338,6 +332,10 @@ SDValue llvm::WDCTargetLowering::LowerAdd(SDValue node, const SDLoc & debugLoc, 
 SDValue llvm::WDCTargetLowering::LowerSub(SDValue node, const SDLoc & debugLoc, SelectionDAG & DAG) const {
   if (const auto loweredToStackRel = LowerStackRelativeOperand(node, DAG, WDCISD::SUB); loweredToStackRel) {
     return loweredToStackRel;
+  }
+
+  if (const auto loweredToAbsLong = TryFoldGlobalAddressOperand(node, false, debugLoc, DAG, WDCISD::SUB); loweredToAbsLong) {
+    return loweredToAbsLong;
   }
 
   return {};
@@ -603,6 +601,11 @@ EVT llvm::WDCTargetLowering::getSetCCResultType(const DataLayout &DL,
 }
 
 bool llvm::WDCTargetLowering::convertSetCCLogicToBitwiseLogic(EVT) const {
+  return true;
+}
+
+bool llvm::WDCTargetLowering::decomposeMulByConstant(LLVMContext &Context,
+                                                     EVT VT, SDValue C) const {
   return true;
 }
 

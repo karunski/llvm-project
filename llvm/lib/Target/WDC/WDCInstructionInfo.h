@@ -96,14 +96,14 @@ private:
                                                 int &FrameIndex) const override;
 
   void expandSTGPdp(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI) const;
-  void ExpandLDGPdp(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI) const;
+  void expandLDGPdp(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI) const;
 
   MachineMemOperand *GetMemOperand(MachineBasicBlock &MBB, int FI,
                                    MachineMemOperand::Flags Flags) const;
 
   using TargetOpcodeTy = decltype(WDC::ADCi);
   void expandADD(MachineBasicBlock &MBB, MachineBasicBlock::iterator I, TargetOpcodeTy) const;
-  void expandSUBdp(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
+  void expandSUB(MachineBasicBlock &MBB, MachineBasicBlock::iterator I, TargetOpcodeTy) const;
   void expandRTL(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
   void expandSetM(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
   void expandSRA(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;

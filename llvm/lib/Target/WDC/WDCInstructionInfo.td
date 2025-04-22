@@ -26,12 +26,19 @@ def CLC    : InstImpl<0x18, (outs), (ins), "CLC", [(CLCNode)]>;
 def SEC    : InstImpl<0x38, (outs), (ins), "SEC", [(SECNode)]>;
 }
 
+let isAdd = 1,Constraints="$dst = $src" in {
+  let Uses=[M] in {
+    def INC : InstImpl<0x1A, (outs RegsA16:$dst), (ins RegsA16:$src), "INC A", [(set RegsA16:$dst, (ADDNode RegsA16:$src, OnePattern))]>;
+  }
+  def INCGP : InstPseudo<(outs RegsGP16:$dst), (ins RegsGP16:$src), [(set RegsGP16:$dst, (add RegsGP16:$src, OnePattern))]>;
+}
+
 let isAdd = 1,Defs=[Carry],Constraints="$src = $dst" in {
   let Uses=[M] in {
     def ADDdp : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$slot),
                            [(set RegsA16:$dst, (ADDNode RegsA16:$src, PatternDp:$slot))]>;
     def ADDi : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, UnsignedImm16Operand:$const),
-                          [(set RegsA16:$dst, (ADDNode RegsA16:$src, UnsignedImm16Pattern:$const))]>;
+                          [(set RegsA16:$dst, (ADDNode RegsA16:$src, Imm16Pattern:$const))]>;
     def ADDal : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, OprndAbsLong:$addr),
                            [(set RegsA16:$dst, (ADDNode RegsA16:$src, (Wrapper (tglobaladdr:$addr))))]>;
   }
@@ -66,12 +73,6 @@ def CMPdp : InstDrctPg<0xc5, (outs StatusReg:$sr),
 def EORi : WDCLogicInstructionImmediate<0x49, xor, "EOR", UnsignedImm16Operand>;
 def EORsr : InstructionLogicStackRelative<0x43, "EOR", EORsrNode>;
 
-let isAdd = 1,Constraints="$dst = $src" in {
-  let Uses=[M] in {
-    def INC : InstImpl<0x1A, (outs RegsA16:$dst), (ins RegsA16:$src), "INC A", [(set RegsA16:$dst, (add RegsA16:$src, OnePattern))]>;
-  }
-  def INCGP : InstPseudo<(outs RegsGP16:$dst), (ins RegsGP16:$src), [(set RegsGP16:$dst, (add RegsGP16:$src, OnePattern))]>;
-}
 
 let isAdd = 1,mayLoad=1,mayStore=1,Uses=[M] in {
   def INCdp : InstDrctPg<0xE6, (outs), (ins OprndAddr8:$addr), "INC\t$addr", 
@@ -166,6 +167,8 @@ let Defs=[Carry],Constraints="$src = $dst" in {
   let Uses=[M,Carry] in {
     def SBCi  : InstImm16<0xE9,  (outs RegsA16:$dst), (ins RegsA16:$src, UnsignedImm16Operand:$const), "SBC\t$const", 
                           [(set RegsA16:$dst, (sub RegsA16:$src,  UnsignedImm16Pattern:$const))]>;
+    def SBCal : InstAbsLong<0xEF, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAbsLong:$addr), "SBC\t$addr", 
+                          [(set RegsA16:$dst, (subc RegsA16:$src, (Wrapper (tglobaladdr:$addr))))]>;
     def SBCsr : InstStkRel<0xE3, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$spoffset), "SBC\t$spoffset", 
                           [(set RegsA16:$dst, (SBCNode RegsA16:$src, PatternDp:$spoffset))]>;
     def SBCdp : InstDrctPg<0xE5, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$addr), "SBC\t$addr", 
@@ -174,6 +177,8 @@ let Defs=[Carry],Constraints="$src = $dst" in {
   let Uses=[M] in {
     def SUBdp : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$slot),
                            [(set RegsA16:$dst, (SUBNode RegsA16:$src, PatternDp:$slot))]>;
+    def SUBal : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, OprndAbsLong:$addr),
+                           [(set RegsA16:$dst, (SUBNode RegsA16:$src, (Wrapper (tglobaladdr:$addr))))]>;
   }
 }
 
@@ -202,17 +207,14 @@ let mayStore=true, hasSideEffects=false in {
 }
 
 let mayStore=true,hasSideEffects=false in {
-  let Uses=[Y] in {
-    def STYdp : InstDrctPg<0x8C, (outs), (ins OprndAddr8:$addr), "STY\t$addr", [(store Y, PatternDp:$addr)]>;
-  }
-  let Uses=[X] in {
-    def STXdp : InstDrctPg<0x8E, (outs), (ins OprndAddr8:$addr), "STX\t$addr", [(store X, PatternDp:$addr)]>;
-  }
+  def STYdp : InstDrctPg<0x8C, (outs), (ins RegsY16:$src, OprndAddr8:$addr), "STY\t$addr",
+                         [(store RegsY16:$src, PatternDp:$addr)]>;
+  def STXdp : InstDrctPg<0x8E, (outs), (ins RegsX16:$src, OprndAddr8:$addr), "STX\t$addr", 
+                         [(store RegsX16:$src, PatternDp:$addr)]>;
   let Uses=[M],hasSideEffects=false in {
     def STZa  : InstAbs<0x9C,    (outs), (ins OprndAddr16:$addr), "STZ\t$addr", [(store PatternZero16, NearGlobalPattern:$addr)]>;
     def STZdp : InstDrctPg<0x64, (outs), (ins OprndAddr8:$addr),  "STZ\t$addr", [(store PatternZero16, PatternDp:$addr)]>;
   }
-  
 }
 
 let Defs=[X],Uses=[C] in {

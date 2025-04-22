@@ -224,6 +224,9 @@ namespace llvm {
                            EVT VT) const override;
 
     bool convertSetCCLogicToBitwiseLogic(EVT vt) const override;
+
+    bool decomposeMulByConstant(LLVMContext &Context, EVT VT,
+                                SDValue C) const override;
   };
 }
 
