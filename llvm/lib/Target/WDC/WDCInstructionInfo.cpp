@@ -384,11 +384,22 @@ void llvm::WDCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
       BuildMI(MBB, MI, dbgLoc, get(WDC::TAX));
       return;
     }
+    if (DestReg == WDC::Y) {
+      BuildMI(MBB, MI, dbgLoc, get(WDC::TAY));
+      return;
+    }
   }
 
   if (SrcReg == WDC::X) {
     if (DestReg == WDC::C) {
       BuildMI(MBB, MI, dbgLoc, get(WDC::TXA));
+      return;
+    }
+  }
+
+  if (SrcReg == WDC::Y) {
+    if (DestReg == WDC::C) {
+      BuildMI(MBB, MI, dbgLoc, get(WDC::TYA));
       return;
     }
   }

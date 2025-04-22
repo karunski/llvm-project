@@ -13,7 +13,7 @@
 class CCIfSubtarget<string F, CCAction A>:
   CCIf<!strconcat("State.getTarget().getSubtarget<WDCSubtarget>().", F), A>;
 
-def CalleeSavedRegsWDC : CalleeSavedRegs<(add X, Y)>;
+def CalleeSavedRegsWDC : CalleeSavedRegs<(add)>;
 
 def RetCC_WDC : CallingConv<[
   // Return 

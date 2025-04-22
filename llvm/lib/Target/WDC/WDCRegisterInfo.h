@@ -55,6 +55,10 @@ public:
 
   /// \brief Return GPR register class.
   const TargetRegisterClass *intRegClass(unsigned Size) const;
+
+  const TargetRegisterClass *
+  getLargestLegalSuperClass(const TargetRegisterClass *RC,
+                            const MachineFunction &) const override;
 };
 
 } // end namespace llvm

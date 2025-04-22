@@ -185,3 +185,11 @@ const TargetRegisterClass *
 WDCRegisterInfo::intRegClass(unsigned Size) const {
   return &WDC::CPURegsRegClass;
 }
+
+const TargetRegisterClass *llvm::WDCRegisterInfo::getLargestLegalSuperClass(
+    const TargetRegisterClass *RC, const MachineFunction &) const {
+  if (RC == &WDC::RegsA16RegClass) {
+    return &WDC::RegsGP16RegClass;
+  }
+  return RC;
+}

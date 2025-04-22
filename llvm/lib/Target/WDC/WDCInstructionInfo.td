@@ -218,6 +218,9 @@ let mayStore=true,hasSideEffects=false in {
 let Defs=[X],Uses=[C] in {
   def TAX : InstImpl<0xAA, (outs), (ins), "TAX", []>;
 }
+let Defs=[Y],Uses=[C] in {
+  def TAY : InstImpl<0xA8, (outs), (ins), "TAY", []>;
+}
 // "Transfer Carry to least significant bit of A" == ROL A 
 def TCA : InstPseudo<(outs RegsA16:$dst), (ins StatusReg:$src), []>;
 def TSC : WDCTransferInstruction<0x3B, (outs RegsA16:$dst), (ins), "TSC">;
@@ -227,6 +230,9 @@ def TCD : WDCTransferInstruction<0x5B, (outs), (ins RegsA16:$src), "TCD">;
 
 let Defs=[C],Uses=[X] in {
   def TXA : InstImpl<0x8A, (outs), (ins), "TXA", []>;
+}
+let Defs=[C],Uses=[Y] in {
+  def TYA : InstImpl<0x98, (outs), (ins), "TYA", []>;
 }
 
 let Constraints="$dst = $src" in {
