@@ -103,13 +103,16 @@ let mayLoad=1,hasSideEffects=0 in {
       def LDAi : InstImm16<0xA9, (outs RegsA16:$dst), (ins UnsignedImm16Operand:$const),
                         "LDA\t$const", [(set RegsA16:$dst, imm:$const)]>;
     }
-    def LDAdp : InstDrctPg<0xA5, (outs RegsA16:$dst), (ins OprndAddr8:$addr), "LDA\t$addr", [(set RegsA16:$dst, (load PatternDp:$addr))]>;
+    def LDAdp : InstDrctPg<0xA5, (outs RegsA16:$dst), (ins OprndAddr8:$addr), "LDA\t$addr", 
+                           [(set RegsA16:$dst, (load PatternDp:$addr))]>;
   }
   let Defs=[X] in {
-    def LDXdp : InstDrctPg<0xA6, (outs), (ins OprndAddr8:$addr), "LDX\t$addr", [(set X, (load PatternDp:$addr))]>;
+    def LDXdp : InstDrctPg<0xA6, (outs RegsX16:$dst), (ins OprndAddr8:$addr), "LDX\t$addr", 
+                           [(set RegsX16:$dst, (load PatternDp:$addr))]>;
   }
   let Defs=[Y] in {
-    def LDYdp : InstDrctPg<0xA4, (outs), (ins OprndAddr8:$addr), "LDY\t$addr", [(set Y, (load PatternDp:$addr))]>;
+    def LDYdp : InstDrctPg<0xA4, (outs RegsY16:$dst), (ins OprndAddr8:$addr), "LDY\t$addr", 
+                           [(set RegsY16:$dst, (load PatternDp:$addr))]>;
   }  
 }
 

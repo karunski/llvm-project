@@ -226,6 +226,13 @@ void llvm::WDCInstrInfo::loadRegFromStack(MachineBasicBlock &basicBlock,
     return;
   }
 
+  if (RC == &WDC::RegsGP16RegClass) {
+    BuildMI(basicBlock, blockIter, debugLoc, get(WDC::LDGPdp), DestReg)
+        .addFrameIndex(FrameIndex).addImm(Offset).addMemOperand(MMO);
+    return;
+  }
+
+
   // const auto MMO = GetMemOperand(basicBlock, FrameIndex, MachineMemOperand::MOLoad);
   // const auto Opc = WDC::LDAdp;
   assert(false && "Register class not handled!");
@@ -322,7 +329,7 @@ void llvm::WDCInstrInfo::expandLDGPdp(MachineBasicBlock &MBB,
     assert(false && "Unexpected register operand for LDGPdp!");
     return WDC::LDAdp;
   }();
-  BuildMI(MBB, MI, debugLoc, get(instr)).add(addrOprnd);
+  BuildMI(MBB, MI, debugLoc, get(instr)).add(destOprnd).add(addrOprnd);
 }
 
 void llvm::WDCInstrInfo::expandADD(MachineBasicBlock &MBB,
