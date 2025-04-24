@@ -68,13 +68,12 @@ namespace llvm {
       ADCsr,
       ADDsr,
       ADD,
-      ADDi,
-      ANDsr,
-      EORsr,
+      AND,
+      EOR,
       SETCC,
       SUB,
       SBC,
-      ORAsr,
+      ORA,
       LDAdpil,
       LDAi,
       LEA,
@@ -204,6 +203,10 @@ namespace llvm {
 
     SDValue LowerAdd(SDValue node, const SDLoc &debugLoc,
                      SelectionDAG &DAG) const;
+
+    SDValue LowerLogic(SDValue node, const SDLoc &debugLoc, SelectionDAG &DAG,
+                       ISD::NodeType isdType,
+                       WDCISD::NodeType wdcNodeType) const;
 
     SDValue LowerSub(SDValue node, const SDLoc &debugLoc,
                      SelectionDAG &DAG) const;

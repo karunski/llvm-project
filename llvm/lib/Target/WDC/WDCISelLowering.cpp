@@ -58,14 +58,13 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::ADCi:              return "WDCISD::ADCi";
   case WDCISD::ADCsr:             return "WDCISD::ADCsr";
   case WDCISD::ADD:               return "WDCISD::ADD";
-  case WDCISD::ADDi:              return "WDCISD::ADDi";
   case WDCISD::ADDsr:             return "WDCISD::ADDsr";
-  case WDCISD::ANDsr:             return "WDCISD::ANDsr";
-  case WDCISD::EORsr:             return "WDCISD::EORsr";
+  case WDCISD::AND:               return "WDCISD::AND";
+  case WDCISD::EOR:               return "WDCISD::EOR";
   case WDCISD::SETCC:             return "WDCISD::SETCC";
   case WDCISD::SBC:               return "WDCISD::SBC";
   case WDCISD::SUB:               return "WDCISD::SUB";
-  case WDCISD::ORAsr:             return "WDCISD::ORAsr";
+  case WDCISD::ORA:               return "WDCISD::ORA";
   case WDCISD::LDAdpil:           return "WDCISD::LDAdpil";
   case WDCISD::LDAi:              return "WDCISD::LDAi";
   case WDCISD::LEA:               return "WDCISD::LEA";
@@ -281,7 +280,6 @@ static SDValue TryFoldGlobalAddressOperand(SDValue node, bool commutative, const
     if (const auto loadNode = dyn_cast<LoadSDNode>(rhsOperand.getNode()); loadNode) {
       const auto loadBasePtrValue = loadNode->getBasePtr();
       if (const auto globalAddrNode = dyn_cast<GlobalAddressSDNode>(loadBasePtrValue.getNode()); globalAddrNode) {
-        const auto globalAddr = globalAddrNode->getGlobal();
         return dag.getNode(wdcNode, debugLoc, {node.getValueType(), MVT::Other},
                            {loadNode->getChain(), node.getOperand(lhsOprndNo),
                             loadBasePtrValue});
@@ -327,6 +325,47 @@ SDValue llvm::WDCTargetLowering::LowerAdd(SDValue node, const SDLoc & debugLoc, 
   const auto tempStore = DAG.getStore(DAG.getEntryNode(), debugLoc, node.getOperand(1), tempVal, pointerInfo);
   const auto tempLoad = DAG.getLoad(node.getValueType(), debugLoc, tempStore, tempVal, pointerInfo);
   return DAG.getNode(ISD::ADD, debugLoc, {node.getValueType()}, {lhs, tempLoad});
+}
+
+SDValue
+llvm::WDCTargetLowering::LowerLogic(SDValue node, const SDLoc &debugLoc,
+                                    SelectionDAG &DAG, ISD::NodeType isdType,
+                                    WDCISD::NodeType wdcNodeType) const {
+  SDValue lhs = node.getOperand(0);
+  SDValue rhs = node.getOperand(1);
+
+  const auto rhsNdTy = static_cast<ISD::NodeType>(rhs.getOpcode());
+
+  if (const auto loweredToStackRel =
+          LowerStackRelativeOperand(node, DAG, wdcNodeType);
+      loweredToStackRel) {
+    return loweredToStackRel;
+  }
+
+  if (rhsNdTy == ISD::Constant) {
+    return DAG.getNode(wdcNodeType, debugLoc, {node.getValueType()},
+                       {DAG.getEntryNode(), lhs, rhs});
+  }
+
+  if (const auto loweredToAbsLong =
+          TryFoldGlobalAddressOperand(node, true, debugLoc, DAG, wdcNodeType);
+      loweredToAbsLong) {
+    return loweredToAbsLong;
+  }
+
+  // 65816 doesn't have any instructions that take registers as operands.
+  // Any binary op that has two non-memory operands isn't supported
+  // Store the rhs operand's value to a stack slot, then insert a 'load' from
+  // that slot as the new operand, then try again.
+  const auto tempVal = DAG.CreateStackTemporary(node.getValueType());
+  const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(tempVal.getNode());
+  const auto pointerInfo = MachinePointerInfo::getFixedStack(
+      DAG.getMachineFunction(), frameIndexNode->getIndex());
+  const auto tempStore = DAG.getStore(DAG.getEntryNode(), debugLoc,
+                                      node.getOperand(1), tempVal, pointerInfo);
+  const auto tempLoad = DAG.getLoad(node.getValueType(), debugLoc, tempStore,
+                                    tempVal, pointerInfo);
+  return DAG.getNode(isdType, debugLoc, {node.getValueType()}, {lhs, tempLoad});
 }
 
 SDValue llvm::WDCTargetLowering::LowerSub(SDValue node, const SDLoc & debugLoc, SelectionDAG & DAG) const {
@@ -433,10 +472,10 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
     return LowerSub(node, dbgLoc, DAG);
   }
   else if (opcode == ISD::AND) {
-    return LowerStackRelativeOperand(node, DAG, WDCISD::ANDsr); 
+    return LowerLogic(node, dbgLoc, DAG, ISD::AND, WDCISD::AND); 
   }
   else if (opcode == ISD::OR) {
-    return LowerStackRelativeOperand(node, DAG, WDCISD::ORAsr);
+    return LowerLogic(node, dbgLoc, DAG, ISD::OR, WDCISD::ORA);
   }
   else if (opcode == ISD::ROTL) {
     return ExpandShift(node, DAG, WDC::ROTL);
@@ -451,7 +490,7 @@ SDValue llvm::WDCTargetLowering::LowerOperation(SDValue node,
     return ExpandShift(node, DAG, WDC::LSR);
   }
   else if (opcode == ISD::XOR) {
-    return LowerStackRelativeOperand(node, DAG, WDCISD::EORsr);
+    return LowerLogic(node, dbgLoc, DAG, ISD::XOR, WDCISD::EOR);
   }
   else if (opcode == ISD::SETCC) {
     return LowerSetCC(node, dbgLoc, DAG);

@@ -53,9 +53,16 @@ let isAdd = 1,Defs=[Carry],Constraints="$src = $dst" in {
   }
 }
 
-
-def ANDi : WDCLogicInstructionImmediate<0x29, and, "AND", UnsignedImm16Operand>;
-def ANDsr : InstructionLogicStackRelative<0x23, "AND", ANDsrNode>;
+let Constraints="$dst = $src",Uses=[M] in {
+  def ANDi : InstImm16<0x29, (outs RegsA16:$dst), (ins RegsA16:$src, UnsignedImm16Operand:$const), 
+                             "AND\t$const", [(set RegsA16:$dst, (ANDNode RegsA16:$src, Imm16Pattern:$const))]>;
+  def ANDdp : InstDrctPg<0x25, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$addr),
+                             "AND\t$addr", [(set RegsA16:$dst, (ANDNode RegsA16:$src, PatternDp:$addr))]>;
+  def ANDsr : InstStkRel<0x23, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$spoffset),
+                             "AND\t$spoffset", [(set RegsA16:$dst, (ANDNode RegsA16:$src, PatternDp:$spoffset))]>;
+  def ANDal : InstAbsLong<0x2F, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAbsLong:$addr),
+                             "AND\t$addr", [(set RegsA16:$dst, (ANDNode RegsA16:$src, (Wrapper (tglobaladdr:$addr))))]>;
+}
 
 def ASL : InstImpl<0x0A, (outs RegsA16:$dst), (ins RegsA16:$src), 
                                  "ASL\tA", [(set RegsA16:$dst, (shl RegsA16:$src, OnePattern))]>;
@@ -70,9 +77,14 @@ def CMPdp : InstDrctPg<0xc5, (outs StatusReg:$sr),
                               "CMP\t$addr", []>;
 
 
-def EORi : WDCLogicInstructionImmediate<0x49, xor, "EOR", UnsignedImm16Operand>;
-def EORsr : InstructionLogicStackRelative<0x43, "EOR", EORsrNode>;
-
+let Constraints="$dst = $src",Uses=[M] in {
+  def EORi : InstImm16<0x49, (outs RegsA16:$dst), (ins RegsA16:$src, UnsignedImm16Operand:$const), "EOR\t$const", 
+                         [(set RegsA16:$dst, (EORNode RegsA16:$src, UnsignedImm16Pattern:$const))]>;
+  def EORdp : InstDrctPg<0x45, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$addr), "EOR\t$addr", 
+                         [(set RegsA16:$dst, (EORNode RegsA16:$src, PatternDp:$addr))]>;
+  def EORal : InstAbsLong<0x4F, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAbsLong:$addr), "EOR\t$addr", 
+                         [(set RegsA16:$dst, (EORNode RegsA16:$src, (Wrapper (tglobaladdr:$addr))))]>;
+}
 
 let isAdd = 1,mayLoad=1,mayStore=1,Uses=[M] in {
   def INCdp : InstDrctPg<0xE6, (outs), (ins OprndAddr8:$addr), "INC\t$addr", 
@@ -126,8 +138,16 @@ let Constraints="$dst = $src", Uses=[M,Carry], Defs=[Carry] in {
                                   [(set RegsA16:$dst, (srl RegsA16:$src, OnePattern))]>;
 }
 
-def ORAi   : WDCLogicInstructionImmediate<0x09, or, "ORA", UnsignedImm16Operand>;
-def ORAsr  : InstructionLogicStackRelative<0x03, "ORA", ORAsrNode>;
+let Constraints="$dst = $src",Uses=[M] in {
+  def ORAi  : InstImm16<0x09, (outs RegsA16:$dst), (ins RegsA16:$src, UnsignedImm16Operand:$const), "ORA\t$const", 
+                          [(set RegsA16:$dst, (ORANode RegsA16:$src, Imm16Pattern:$const))]>;
+  def ORAdp : InstDrctPg<0x05, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$addr), "ORA\t$addr", 
+                          [(set RegsA16:$dst, (ORANode RegsA16:$src, PatternDp:$addr))]>;
+  def ORAsr : InstStkRel<0x03, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$spoffset), "ORA\t$spoffset", 
+                          [(set RegsA16:$dst, (ORANode RegsA16:$src, PatternDp:$spoffset))]>;
+  def ORAl  : InstAbsLong<0x0F, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAbsLong:$addr), "ORA\t$addr", 
+                          [(set RegsA16:$dst, (ORANode RegsA16:$src, (Wrapper (tglobaladdr:$addr))))]>;
+}
 
 let Uses=[M,C] in {
   def PHA : InstImpl<0x48, (outs), (ins), "PHA", []>;
