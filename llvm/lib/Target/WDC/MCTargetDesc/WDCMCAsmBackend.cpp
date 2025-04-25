@@ -62,7 +62,7 @@ private:
     return createWDCELFObjectWriter(TheTriple);
   }
 
-  const llvm::MCFixupKindInfo & getFixupKindInfo(llvm::MCFixupKind Kind) const override {
+  llvm::MCFixupKindInfo getFixupKindInfo(llvm::MCFixupKind Kind) const override {
     // unsigned JSUBReloRec = 0;
     // // if (HasLLD) {
     //   JSUBReloRec = llvm::MCFixupKindInfo::FKF_IsPCRel;

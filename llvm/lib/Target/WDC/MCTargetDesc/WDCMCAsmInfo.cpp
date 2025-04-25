@@ -17,6 +17,7 @@
 #include <llvm/TargetParser/Triple.h>
 #include <llvm/MC/MCAsmInfoELF.h>
 #include <llvm/MC/MCRegisterInfo.h>
+#include <llvm/MC/MCDwarf.h>
 
 using namespace llvm;
 
