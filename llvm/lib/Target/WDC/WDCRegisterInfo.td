@@ -18,7 +18,7 @@ class WDCReg<string name> : Register<name> {
 
 
 class WDCFakeReg<string name> : WDCReg<name> {
-  let isArtificial = true;
+  // let isArtificial = true;
 }
 
 //===----------------------------------------------------------------------===//

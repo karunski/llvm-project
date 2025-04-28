@@ -19,6 +19,8 @@ public:
     enum class WDCExprKind {
         None,
         AbsLong,
+        ImmAbsLongHi,
+        ImmAbsLongLo
     };
 
     static MCExpr * create(WDCExprKind Kind, const MCExpr *Expr, MCContext &Ctx);

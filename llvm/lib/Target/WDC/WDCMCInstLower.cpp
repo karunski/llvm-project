@@ -46,22 +46,43 @@ void WDCMCInstLower::Initialize(MCContext* C) {
 // }
 
 MCOperand WDCMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
-                                    MachineOperandType MOTy, unsigned /*Offset*/) const {
+                                    MachineOperandType MOTy, unsigned Offset) const {
   MCSymbol * Symbol = nullptr;
 
   switch (MOTy) {
   case MachineOperand::MO_GlobalAddress:
     Symbol = AsmPrinter.getSymbol(MO.getGlobal());
-    //Offset += MO.getOffset();
+    Offset += MO.getOffset();
     break;
 
   default:
     llvm_unreachable("<unknown operand type>");
   }
 
+  const auto targetKind = [targetMoFlags = MO.getTargetFlags()]() {
+    switch (targetMoFlags) {
+    case WDCII::MO_ABS_HI:
+      return WDCMCExpr::WDCExprKind::ImmAbsLongHi;
+    case WDCII::MO_ABS_LO:
+      return WDCMCExpr::WDCExprKind::ImmAbsLongLo;
+    default:
+      return WDCMCExpr::WDCExprKind::AbsLong;
+    }
+  }();
+
   const auto Kind = MCSymbolRefExpr::VK_None;
   const auto SymbolExpr = MCSymbolRefExpr::create(Symbol, Kind, *Ctx);
-  const auto Expr = WDCMCExpr::create(WDCMCExpr::WDCExprKind::AbsLong, SymbolExpr, *Ctx);
+
+  const auto Expr = [this, Offset, targetKind, SymbolExpr]() -> const MCExpr * {
+    const auto Expr = WDCMCExpr::create(targetKind, SymbolExpr, *Ctx);
+    if (Offset) {
+      // Assume offset is never negative.
+      assert(Offset > 0);
+      return MCBinaryExpr::createAdd(Expr, MCConstantExpr::create(Offset, *Ctx),
+                                     *Ctx);
+    }
+    return Expr;
+  }();
   return MCOperand::createExpr(Expr);
 }
 

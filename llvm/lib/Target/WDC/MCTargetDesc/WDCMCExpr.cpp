@@ -15,15 +15,32 @@ llvm::WDCMCExpr::WDCMCExpr(WDCExprKind Kind, const MCExpr *Expr)
 
 void llvm::WDCMCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
 
+  const auto outputExpr = [this, &OS, MAI]() {
+    int64_t AbsVal = 0;
+    if (this->expr->evaluateAsAbsolute(AbsVal)) {
+      OS << AbsVal;
+    } else {
+      expr->print(OS, MAI, true);
+    }
+  };
+
   if (exprKind == WDCExprKind::AbsLong) {
     OS << ">";
+    outputExpr();
   }
-  
-  int64_t AbsVal = 0;
-  if (this->expr->evaluateAsAbsolute(AbsVal)) {
-    OS << AbsVal;
-  } else {
-    expr->print(OS, MAI, true);
+  else if (exprKind == WDCExprKind::ImmAbsLongHi) {
+    OS << "#(";
+    outputExpr();
+    OS << ").high";
+  }
+  else if (exprKind == WDCExprKind::ImmAbsLongLo) {
+    OS << "#(";
+    outputExpr();
+    OS << ").low";
+  }
+  else
+  {
+    assert(false && "Unhandled WDCExprKind");
   }
 }
 

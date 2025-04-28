@@ -218,6 +218,8 @@ let mayStore=true, hasSideEffects=false in {
                         [(store RegsA16:$src, NearGlobalPattern:$addr)]>;
     def STAal  : InstAbsLong<0x8F, (outs), (ins RegsA16:$src, OprndAbsLong:$addr), "STA\t$addr",   
                         [(store RegsA16:$src, (Wrapper (tglobaladdr:$addr)))]>;
+    def STAaltrunc : InstAbsLong<0x8F, (outs), (ins FakeRegs:$src, OprndAbsLong:$addr), "STA\t$addr",   
+                        [(truncstore FakeRegs:$src, (Wrapper (tglobaladdr:$addr)))]>;
     def STAdp  : InstDrctPg<0x85,  (outs), (ins RegsA16:$src, OprndAddr8:$addr),   "STA\t$addr",   
                         [(store RegsA16:$src, PatternDp:$addr)]>;
     def STAdpi : InstDrctPg<0x92,  (outs), (ins RegsA16:$src, OprndAddr8:$addr),   "STA\t($addr)", 
@@ -271,6 +273,9 @@ def : Pat<(globaladdr:$addr), (imm:$addr)>;
 def : Pat<(seteq RegsA16:$src, UnsignedImm16Pattern:$const), (
   ANDi (LSR (COPY_TO_REGCLASS (CMPi RegsA16:$src, imm:$const), RegsA16)), 1)>;
 
+def : Pat<(LoNode tglobaladdr:$ptr), (LDAi $ptr)>;
+def : Pat<(HiNode tglobaladdr:$ptr), (LDAi $ptr)>;
+
 // SETCC comparisons between the accumulator and a frame index
 // For seteq (setne comes from this as well)
 def : Pat<(SETCCNode RegsA16:$src, PatternDp:$addr, SETEQ),
@@ -282,4 +287,3 @@ def mem_ea : Operand<iPTR> {
   let PrintMethod = "printMemOperandEA";
   let EncoderMethod = "getMemEncoding";
 }
-

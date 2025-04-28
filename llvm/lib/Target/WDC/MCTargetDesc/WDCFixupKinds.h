@@ -28,8 +28,8 @@ namespace WDC {
     //@ Pure upper 24 bit fixup resulting in - R_WDC_LONG.
     fixup_WDC_long = FirstTargetFixupKind,
 
-    // // Pure upper 16 bit fixup resulting in - R_CPU0_HI16.
-    // fixup_Cpu0_HI16,
+    // // Pure upper 16 bit fixup resulting in - R_WDC_HI16.
+    fixup_Cpu0_HI16,
 
     // // Pure lower 16 bit fixup resulting in - R_CPU0_LO16.
     // fixup_Cpu0_LO16,

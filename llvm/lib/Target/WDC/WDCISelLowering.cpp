@@ -18,6 +18,7 @@
 #include "WDCTargetObjectFile.h"
 #include "WDCSubtarget.h"
 #include "WDCRegisterInfo.h"
+#include "MCTargetDesc/WDCBaseInfo.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/CodeGen/CallingConvLower.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
@@ -599,6 +600,26 @@ SDValue llvm::WDCTargetLowering::LowerStore(StoreSDNode * stNd, const SDLoc& dbg
       SmallVector<SDValue> joinedVals{storeHigh, storeLow};
       return DAG.getTokenFactor(dbgLoc, joinedVals);
     }
+  }
+
+  if (valNdTy == ISD::GlobalAddress) {
+    const auto glblAddr = cast<GlobalAddressSDNode>(valNd.getNode());
+    const auto glblAddrVal = glblAddr->getGlobal();
+    const auto glblHigh = DAG.getTargetGlobalAddress(glblAddrVal, dbgLoc, MVT::i32, 0, WDCII::MO_ABS_HI);
+    const auto constGlblHigh = DAG.getNode(WDCISD::Hi, dbgLoc, MVT::i16, glblHigh);
+    const auto glblLow = DAG.getTargetGlobalAddress(glblAddrVal, dbgLoc, MVT::i32, 0, WDCII::MO_ABS_LO);
+    const auto constGlblLow = DAG.getNode(WDCISD::Lo, dbgLoc, MVT::i16, glblLow);
+    assert(addrTp == ISD::GlobalAddress && "Only handle store i32 to global address");
+    const auto destGlblAddr = cast<GlobalAddressSDNode>(addrNd.getNode());
+    const auto destGlblAddrVal = destGlblAddr->getGlobal();
+    const auto targetAddrHigh = DAG.getTargetGlobalAddress(destGlblAddrVal, dbgLoc, MVT::i16, 2);
+    const auto globalAddrHigh = DAG.getNode(WDCISD::Wrapper, dbgLoc, MVT::i16, targetAddrHigh);
+    const auto storeHigh =
+        DAG.getStore(chNd, dbgLoc, constGlblHigh, globalAddrHigh,
+                     MachinePointerInfo{destGlblAddrVal, 2});
+    const auto storeLow = DAG.getStore(chNd, dbgLoc, constGlblLow, addrNd,
+                                       MachinePointerInfo{destGlblAddrVal});
+    return DAG.getNode(ISD::TokenFactor, dbgLoc, MVT::Other, storeHigh, storeLow);
   }
   
   if (valNdValTy == MVT::i8) {
