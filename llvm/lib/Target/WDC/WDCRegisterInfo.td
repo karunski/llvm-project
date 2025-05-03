@@ -63,7 +63,7 @@ def CPURegs : RegisterClass<"WDC", [i16], 8, (add
 )>;
 
 def RegsA16 : RegisterClass<"WDC", [i16], 8, (add C)>;
-def RegsA8 : RegisterClass<"WDC", [i8], 8, (add A,B)>;
+def RegsA8 : RegisterClass<"WDC", [i8], 8, (add A)>;
 
 def IndexRegs : RegisterClass<"WDC", [i16], 8, (add X, Y)>;
 def RegsX16 : RegisterClass<"WDC", [i16], 8, (add X)>;

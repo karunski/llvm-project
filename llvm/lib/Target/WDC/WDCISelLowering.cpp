@@ -73,6 +73,7 @@ const char *WDCTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case WDCISD::STA:               return "WDCISD::STA";
   case WDCISD::SETM:              return "WDCISD::SETM";
   case WDCISD::CLC:               return "WDCISD::CLC";
+  case WDCISD::SEXT:              return "WDCISD::SEXT";
   default:                        return NULL;
   }
 }
@@ -104,6 +105,8 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::SETCC, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::GlobalAddress, MVT::i32, LegalizeAction::Custom);
   setOperationAction(ISD::STORE, MVT::i32, LegalizeAction::Custom);
+  setLoadExtAction(ISD::LoadExtType::SEXTLOAD, MVT::i16, MVT::i8, LegalizeAction::Expand);
+
   // setOperationAction(ISD::STORE, MVT::i8, LegalizeAction::Custom);
   //setOperationAction({ISD::Constant}, {MVT::i8,MVT::i16}, LegalizeAction::Custom);
 
@@ -563,13 +566,14 @@ SDValue llvm::WDCTargetLowering::LowerLoad(LoadSDNode * ldNd, const SDLoc & dbgL
   const auto ldNdVlTp = ldNd->getValueType(0);
   const auto chVlTp = ldNd->getValueType(1);
   const auto addr_node_op = static_cast<ISD::NodeType>(addr.getOpcode());
-  const auto ch = ldNd->getChain();
+  const auto chIn = ldNd->getChain();
+
   if (addr_node_op == ISD::LOAD) {
     const auto innerload = cast<LoadSDNode>(addr);
     const auto innerload_addr = innerload->getBasePtr();
     const auto innerload_addr_op = static_cast<ISD::NodeType>(innerload_addr.getOpcode());
     if (innerload_addr_op == ISD::FrameIndex) {
-      return DAG.getNode(WDCISD::LDAdpil, dbgLoc, {ldNdVlTp, chVlTp}, {ch, innerload_addr});
+      return DAG.getNode(WDCISD::LDAdpil, dbgLoc, {ldNdVlTp, chVlTp}, {chIn, innerload_addr});
     }
   }
   return {};

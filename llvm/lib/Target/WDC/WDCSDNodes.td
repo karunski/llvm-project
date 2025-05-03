@@ -25,4 +25,5 @@ def LDAiNode : SDNode<"WDCISD::LDAi", SDTypeProfile<1, 2, [SDTCisInt<0>, SDTCisI
 def LEANode : SDNode<"WDCISD::LEA", SDTypeProfile<1, 1, [SDTCisInt<0>, SDTCisPtrTy<1>]>, []>;
 def SECNode : SDNode<"WDCISD::SEC", SDTypeProfile<0, 0, []>, [SDNPHasChain, SDNPOutGlue]>;
 def STANode : SDNode<"WDCISD::STA", SDTypeProfile<0, 3, [SDTCisPtrTy<1>, SDTCisInt<2>]>, [SDNPHasChain,SDNPMayStore]>;
-def SETMNode : SDNode<"WDCISD::SETM", SDTypeProfile<1, 1, [SDTCisInt<0>, SDTCisInt<1>, SDTCisSameAs<0, 1>]>>;
+def SETMNode : SDNode<"WDCISD::SETM", SDTypeProfile<0, 1, [SDTCisInt<0>]>, [SDNPHasChain]>;
+def SEXTNode : SDNode<"WDCISD::SEXT", SDTypeProfile<1, 1, [SDTCisInt<0>, SDTCisInt<1>]>>;

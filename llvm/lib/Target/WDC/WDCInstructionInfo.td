@@ -94,6 +94,8 @@ let isAdd = 1,mayLoad=1,mayStore=1,Uses=[M] in {
 let mayLoad=1 in {
   def LDAal : InstAbsLong<0xAF, (outs RegsA16:$dst), (ins OprndAbsLong:$src),
                           "LDA\t$src", [(set RegsA16:$dst, (load (Wrapper (tglobaladdr:$src))))]>;
+  def LDAal8 : InstPseudo<(outs RegsA16:$dst), (ins OprndAbsLong:$src),
+                        [(set RegsA16:$dst, (extload (Wrapper (tglobaladdr:$src))))]>;
   def LDAdpil : InstDrctPg<0xA7, (outs RegsA16:$dst), (ins OprndDrctPgIndrct:$addr),
                           "LDA\t$addr",
                           [(set RegsA16:$dst, (LDAdpilNode frameIndexPattern:$addr))]>;
@@ -203,6 +205,11 @@ let Defs=[Carry],Constraints="$src = $dst" in {
     def SUBal : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, OprndAbsLong:$addr),
                            [(set RegsA16:$dst, (SUBNode RegsA16:$src, (Wrapper (tglobaladdr:$addr))))]>;
   }
+}
+
+let Constraints="$src = $dst" in {
+  def SEXT : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src), 
+                      [(set RegsA16:$dst, (sext_inreg RegsA16:$src, i8))]>;
 }
 
 let Constraints="$src = $dst" in {
