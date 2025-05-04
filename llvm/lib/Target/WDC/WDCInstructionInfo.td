@@ -287,6 +287,8 @@ def : Pat<(HiNode tglobaladdr:$ptr), (LDAi $ptr)>;
 // For seteq (setne comes from this as well)
 def : Pat<(SETCCNode RegsA16:$src, PatternDp:$addr, SETEQ),
           (ANDi (LSR (COPY_TO_REGCLASS (CMPdp RegsA16:$src, $addr), RegsA16)), 1)>;
+def : Pat<(SETCCNode RegsA16:$src, UnsignedImm16Pattern:$const, SETEQ), 
+          (ANDi (LSR (COPY_TO_REGCLASS (CMPi RegsA16:$src, imm:$const), RegsA16)), 1)>;
 def : Pat<(SETCCNode RegsA16:$src, PatternDp:$addr, SETGE),
           (ANDi (TCA (CMPdp RegsA16:$src, $addr)), 1)>;
 

@@ -103,6 +103,7 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::SRL,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::XOR,  MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::SETCC, MVT::i16, LegalizeAction::Custom);
+  setOperationAction(ISD::SELECT_CC, MVT::i16, LegalizeAction::Expand);
   setOperationAction(ISD::GlobalAddress, MVT::i32, LegalizeAction::Custom);
   setOperationAction(ISD::STORE, MVT::i32, LegalizeAction::Custom);
   setLoadExtAction(ISD::LoadExtType::SEXTLOAD, MVT::i16, MVT::i8, LegalizeAction::Expand);
@@ -519,6 +520,7 @@ SDValue llvm::WDCTargetLowering::LowerSetCC(SDValue setCCNode, const SDLoc & dbg
   const auto lhsVl = setCCNode.getOperand(0);
   const auto rhsVl = setCCNode.getOperand(1);
   const auto condCodeVl = setCCNode.getOperand(2);
+
   if (const auto loadNode = dyn_cast<LoadSDNode>(rhsVl.getNode()); loadNode) {
     const auto loadBasePtrValue = loadNode->getBasePtr();
     if (const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(loadBasePtrValue.getNode()); frameIndexNode) {
@@ -531,7 +533,14 @@ SDValue llvm::WDCTargetLowering::LowerSetCC(SDValue setCCNode, const SDLoc & dbg
           WDCISD::SETCC, dbgLoc, {lhsVl.getValueType(), MVT::Other},
           {loadNode->getChain(), lhsVl, loadBasePtrValue, condCodeVl});
     }
-  }  return SDValue{};
+  }
+
+  if (const auto constNode = dyn_cast<ConstantSDNode>(rhsVl.getNode()); constNode) {
+    return DAG.getNode(WDCISD::SETCC, dbgLoc, setCCNode.getValueType(),
+                       {DAG.getUNDEF(MVT::Other), lhsVl, rhsVl, condCodeVl});
+  }
+
+  return SDValue{};
 }
 
 SDValue llvm::WDCTargetLowering::LowerGlobalAddress(GlobalAddressSDNode * glblAddrNd, const SDLoc & dbgLoc, SelectionDAG & DAG) const {
