@@ -69,6 +69,7 @@ def ASL : InstImpl<0x0A, (outs RegsA16:$dst), (ins RegsA16:$src),
 
 let isBranch=true,isTerminator=true in {
   def BEQ : InstImm8<0xF0, (outs), (ins SignedImm8Operand:$const), "BEQ\t$const", []>;
+  def BCS : InstImm8<0xB0, (outs), (ins SignedImm8Operand:$const), "BCS\t$const", []>;
   def BRA : InstImm8<0x80, (outs), (ins SignedImm8Operand:$const), "BRA\t$const", []>;
 }
 
@@ -85,7 +86,9 @@ def CMPsr : InstStkRel<0xc3, (outs StatusReg:$sr),
 def CMPdp : InstDrctPg<0xc5, (outs StatusReg:$sr),
                               (ins RegsA16:$src, OprndAddr8:$addr),
                               "CMP\t$addr", []>;
-
+def CMPal : InstAbsLong<0xcf, (outs StatusReg:$sr),
+                              (ins RegsA16:$src, OprndAbsLong:$addr),
+                              "CMP\t$addr", []>;
 
 let Constraints="$dst = $src",Uses=[M] in {
   def EORi : InstImm16<0x49, (outs RegsA16:$dst), (ins RegsA16:$src, UnsignedImm16Operand:$const), "EOR\t$const", 
@@ -231,6 +234,8 @@ def SELECT_CC_eq_i : InstPseudo<(outs RegsGP16:$dst),
 let usesCustomInserter=true in {
   def SETEQ_i : InstPseudo<(outs RegsGP16:$dst), (ins RegsGP16:$src, UnsignedImm16Operand:$const),
                          [(set RegsGP16:$dst, (SETCCNode RegsGP16:$src, UnsignedImm16Pattern:$const, SETEQ))]>;
+  def SETEQ_al : InstPseudo<(outs RegsGP16:$dst), (ins RegsA16:$src, OprndAbsLong:$addr),
+                         [(set RegsGP16:$dst, (SETCCNode RegsA16:$src, (Wrapper (tglobaladdr:$addr)), SETEQ))]>;
 }
 
 let Constraints="$src = $dst" in {
@@ -317,6 +322,8 @@ def : Pat<(SETCCNode RegsA16:$src, PatternDp:$addr, SETEQ),
 //           (ANDi (LSR (COPY_TO_REGCLASS (CMPi RegsA16:$src, imm:$const), RegsA16)), 1)>;
 def : Pat<(SETCCNode RegsA16:$src, PatternDp:$addr, SETGE),
           (ANDi (TCA (CMPdp RegsA16:$src, $addr)), 1)>;
+def : Pat<(SETCCNode RegsA16:$src, (Wrapper (tglobaladdr:$addr)), SETGE),
+          (ANDi (TCA (CMPal RegsA16:$src, $addr)), 1)>;
 
 def mem_ea : Operand<iPTR> {
   let PrintMethod = "printMemOperandEA";

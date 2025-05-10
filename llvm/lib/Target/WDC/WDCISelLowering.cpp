@@ -523,10 +523,14 @@ SDValue llvm::WDCTargetLowering::LowerSetCC(SDValue setCCNode, const SDLoc & dbg
 
   if (const auto loadNode = dyn_cast<LoadSDNode>(rhsVl.getNode()); loadNode) {
     const auto loadBasePtrValue = loadNode->getBasePtr();
-    if (const auto frameIndexNode = dyn_cast<FrameIndexSDNode>(loadBasePtrValue.getNode()); frameIndexNode) {
+    const auto loadBasePtrNodeTy = static_cast<ISD::NodeType>(loadBasePtrValue->getOpcode());
+    const auto loadBasePtrWDCTy = static_cast<WDCISD::NodeType>(loadBasePtrNodeTy);
+    if (loadBasePtrNodeTy == ISD::FrameIndex ||
+        loadBasePtrNodeTy == ISD::GlobalAddress ||
+        loadBasePtrWDCTy == WDCISD::Wrapper) {
       // First operand is the chain from the load that is folding
       // Second operand is the accumulator register.
-      // The instruction will directly load from this frame index base value. This effectively replaces operand 1.
+      // The instruction will directly load from this base pointer value. This effectively replaces operand 1.
       // transfer condition code into the new node.
       // The value will be implicitly extended to the word size. (not an i1 like setcc assumes)
       return DAG.getNode(
@@ -540,6 +544,7 @@ SDValue llvm::WDCTargetLowering::LowerSetCC(SDValue setCCNode, const SDLoc & dbg
                        {DAG.getUNDEF(MVT::Other), lhsVl, rhsVl, condCodeVl});
   }
 
+  llvm_unreachable("Unhandled setcc node");
   return SDValue{};
 }
 
@@ -709,12 +714,12 @@ auto llvm::WDCTargetLowering::EmitInstrWithCustomInserter(llvm::MachineInstr& ps
   auto &mcRegInfo = MF->getRegInfo();
 
   const auto opcode = static_cast<TargetOpcodeTy>(pseudoInst.getOpcode());
-  if (opcode == WDC::SETEQ_i) {
+  if (opcode == WDC::SETEQ_i || opcode == WDC::SETEQ_al) {
 
     // 
-    //   %3:indexregs = SETEQ_i %2:regsa16, 0
+    //   %3:indexregs = SETEQ_i / SETEQ_al %2:regsa16, RHS
     // # expand to:
-    //   CMP %2:regsa16, #0
+    //   CMP %2:regsa16, RHS
     //   BEQ true
     //   %3:indexregs = LDX #0
     //   BRA next
@@ -722,10 +727,8 @@ auto llvm::WDCTargetLowering::EmitInstrWithCustomInserter(llvm::MachineInstr& ps
     // true:
     // %3:indexregs = LDX #1
 
-    // next:
-    //   STGPdp %3:indexregs, %stack.0 :: (store (s16) into %stack.0, align 1)
-    //   %4:regsa16 = COPY %3:indexregs
-    //   STAal %4:regsa16, @b, impl
+    // next:  // fallthrough here 
+    //  
     // If the current basic block falls through to another basic block,
     // we must insert an unconditional branch to the fallthrough destination
     // if we are to insert basic blocks at the prior fallthrough point.
@@ -754,7 +757,16 @@ auto llvm::WDCTargetLowering::EmitInstrWithCustomInserter(llvm::MachineInstr& ps
     nextMBB->transferSuccessorsAndUpdatePHIs(mbbIn);
     
     // Assume the we only support branch if equal for now.
-    BuildMI(mbbIn, dl, targetInstInfo.get(WDC::CMPGPi), WDC::P).add(pseudoInst.getOperand(1)).add(pseudoInst.getOperand(2));
+    const auto cmpInst = [opcode]() {
+      if (opcode == WDC::SETEQ_i) {
+        return WDC::CMPi;
+      }
+      else if (opcode == WDC::SETEQ_al) {
+        return WDC::CMPal;
+      }
+      llvm_unreachable("Invalid opcode for SETEQ");
+    }();
+    BuildMI(mbbIn, dl, targetInstInfo.get(cmpInst), WDC::P).add(pseudoInst.getOperand(1)).add(pseudoInst.getOperand(2));
     BuildMI(mbbIn, dl, targetInstInfo.get(WDC::BEQ)).addMBB(trueMBB, WDCII::MO_PC_REL);
     trueMBB->setLabelMustBeEmitted();
     mbbIn->addSuccessor(trueMBB);
