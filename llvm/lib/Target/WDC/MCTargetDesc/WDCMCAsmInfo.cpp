@@ -26,6 +26,11 @@ namespace {
     void anchor() override {}
   public:
     explicit WDCMCAsmInfo(const Triple &TheTriple);
+  private:
+    bool isAcceptableChar(char C) const override {
+      return C == '?' || MCAsmInfoELF::isAcceptableChar(C);
+    }
+
   };
 }
 
@@ -37,8 +42,8 @@ WDCMCAsmInfo::WDCMCAsmInfo(const Triple &TheTriple) {
   Data32bitsDirective = "\t.4byte\t";
   Data64bitsDirective = "\t.8byte\t";
   PrivateGlobalPrefix = "$";
-  // PrivateLabelPrefix: display $BB for the labels of basic block
-  PrivateLabelPrefix = "$";
+  // PrivateLabelPrefix: display ?BB for the labels of basic block
+  PrivateLabelPrefix = "?";
   CommentString = "#";
   ZeroDirective = "\t.space\t";
   // GPRel32Directive = "\t.gpword\t";

@@ -54,17 +54,21 @@ MCOperand WDCMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
     Symbol = AsmPrinter.getSymbol(MO.getGlobal());
     Offset += MO.getOffset();
     break;
-
+  case MachineOperand::MO_MachineBasicBlock:
+    Symbol = MO.getMBB()->getSymbol();
+    break;
   default:
     llvm_unreachable("<unknown operand type>");
   }
 
-  const auto targetKind = [targetMoFlags = MO.getTargetFlags()]() {
+  const auto targetKind = [targetMoFlags = static_cast<WDCII::TOF>(MO.getTargetFlags())]() {
     switch (targetMoFlags) {
     case WDCII::MO_ABS_HI:
       return WDCMCExpr::WDCExprKind::ImmAbsLongHi;
     case WDCII::MO_ABS_LO:
       return WDCMCExpr::WDCExprKind::ImmAbsLongLo;
+    case WDCII::MO_PC_REL:
+      return WDCMCExpr::WDCExprKind::PCRel;
     default:
       return WDCMCExpr::WDCExprKind::AbsLong;
     }
@@ -101,6 +105,7 @@ MCOperand WDCMCInstLower::LowerOperand(const MachineOperand& MO,
   case MachineOperand::MO_Immediate:
     return MCOperand::createImm(MO.getImm() + offset);
   case MachineOperand::MO_GlobalAddress:
+  case MachineOperand::MO_MachineBasicBlock:
     return LowerSymbolOperand(MO, MOTy, offset);
   case MachineOperand::MO_RegisterMask:
     break;

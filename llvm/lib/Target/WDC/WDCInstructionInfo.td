@@ -67,8 +67,18 @@ let Constraints="$dst = $src",Uses=[M] in {
 def ASL : InstImpl<0x0A, (outs RegsA16:$dst), (ins RegsA16:$src), 
                                  "ASL\tA", [(set RegsA16:$dst, (shl RegsA16:$src, OnePattern))]>;
 
+let isBranch=true,isTerminator=true in {
+  def BEQ : InstImm8<0xF0, (outs), (ins SignedImm8Operand:$const), "BEQ\t$const", []>;
+  def BRA : InstImm8<0x80, (outs), (ins SignedImm8Operand:$const), "BRA\t$const", []>;
+}
+
+def CMPGPi : InstPseudo<(outs StatusReg:$sr), (ins RegsGP16:$src, UnsignedImm16Operand:$const), []>;
 def CMPi : InstImm16<0xc9, (outs StatusReg:$sr), (ins RegsA16:$src, UnsignedImm16Operand:$const),
                                   "CMP\t$const", []>;
+def CPXi : InstImm16<0xe0, (outs StatusReg:$sr), (ins RegsX16:$src, UnsignedImm16Operand:$const),
+                                  "CPX\t$const", []>;
+def CPYi : InstImm16<0xc0, (outs StatusReg:$sr), (ins RegsY16:$src, UnsignedImm16Operand:$const),
+                                  "CPY\t$const", []>;
 def CMPsr : InstStkRel<0xc3, (outs StatusReg:$sr),
                                         (ins RegsA16:$src, StackOffsetOperand:$spoffset),
                                         "CMP\t$spoffset", []>;
@@ -120,14 +130,16 @@ let mayLoad=1,hasSideEffects=0 in {
     def LDAdp : InstDrctPg<0xA5, (outs RegsA16:$dst), (ins OprndAddr8:$addr), "LDA\t$addr", 
                            [(set RegsA16:$dst, (load PatternDp:$addr))]>;
   }
-  let Defs=[X] in {
-    def LDXdp : InstDrctPg<0xA6, (outs RegsX16:$dst), (ins OprndAddr8:$addr), "LDX\t$addr", 
-                           [(set RegsX16:$dst, (load PatternDp:$addr))]>;
-  }
-  let Defs=[Y] in {
-    def LDYdp : InstDrctPg<0xA4, (outs RegsY16:$dst), (ins OprndAddr8:$addr), "LDY\t$addr", 
+  def LDXdp : InstDrctPg<0xA6, (outs RegsX16:$dst), (ins OprndAddr8:$addr), "LDX\t$addr", 
+                          [(set RegsX16:$dst, (load PatternDp:$addr))]>;
+  def LDYdp : InstDrctPg<0xA4, (outs RegsY16:$dst), (ins OprndAddr8:$addr), "LDY\t$addr", 
                            [(set RegsY16:$dst, (load PatternDp:$addr))]>;
-  }  
+  def LDGPi : InstPseudo<(outs RegsGP16:$dst), (ins UnsignedImm16Operand:$const),
+                          [(set RegsGP16:$dst, (load imm:$const))]>;
+  def LDXi  : InstImm16<0xA2, (outs RegsX16:$dst), (ins UnsignedImm16Operand:$const), "LDX\t$const", 
+                          [(set RegsX16:$dst, imm:$const)]>;
+  def LDYi  : InstImm16<0xA0, (outs RegsY16:$dst), (ins UnsignedImm16Operand:$const), "LDY\t$const", 
+                          [(set RegsY16:$dst, imm:$const)]>;
 }
 
 // Pseudo instruction to copy the address of a stack slot into the accumulator
@@ -205,6 +217,20 @@ let Defs=[Carry],Constraints="$src = $dst" in {
     def SUBal : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, OprndAbsLong:$addr),
                            [(set RegsA16:$dst, (SUBNode RegsA16:$src, (Wrapper (tglobaladdr:$addr))))]>;
   }
+}
+
+def SELECT_CC_eq_i : InstPseudo<(outs RegsGP16:$dst), 
+                            (ins RegsGP16:$src, UnsignedImm16Operand:$const, UnsignedImm16Operand:$trueval, 
+                             UnsignedImm16Operand:$falseval),
+                            [(set RegsGP16:$dst,
+                                  (selectcc RegsGP16:$src, UnsignedImm16Pattern:$const,
+                                            UnsignedImm16Pattern:$trueval, UnsignedImm16Pattern:$falseval, 
+                                            SETEQ
+                                  )
+                             )]>;
+let usesCustomInserter=true in {
+  def SETEQ_i : InstPseudo<(outs RegsGP16:$dst), (ins RegsGP16:$src, UnsignedImm16Operand:$const),
+                         [(set RegsGP16:$dst, (SETCCNode RegsGP16:$src, UnsignedImm16Pattern:$const, SETEQ))]>;
 }
 
 let Constraints="$src = $dst" in {
@@ -287,8 +313,8 @@ def : Pat<(HiNode tglobaladdr:$ptr), (LDAi $ptr)>;
 // For seteq (setne comes from this as well)
 def : Pat<(SETCCNode RegsA16:$src, PatternDp:$addr, SETEQ),
           (ANDi (LSR (COPY_TO_REGCLASS (CMPdp RegsA16:$src, $addr), RegsA16)), 1)>;
-def : Pat<(SETCCNode RegsA16:$src, UnsignedImm16Pattern:$const, SETEQ), 
-          (ANDi (LSR (COPY_TO_REGCLASS (CMPi RegsA16:$src, imm:$const), RegsA16)), 1)>;
+// def : Pat<(SETCCNode RegsA16:$src, UnsignedImm16Pattern:$const, SETEQ), 
+//           (ANDi (LSR (COPY_TO_REGCLASS (CMPi RegsA16:$src, imm:$const), RegsA16)), 1)>;
 def : Pat<(SETCCNode RegsA16:$src, PatternDp:$addr, SETGE),
           (ANDi (TCA (CMPdp RegsA16:$src, $addr)), 1)>;
 

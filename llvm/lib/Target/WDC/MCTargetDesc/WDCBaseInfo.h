@@ -51,7 +51,9 @@ namespace WDCII {
 
     /// MO_GOT_HI16/LO16 - Relocations used for large GOTs.
     MO_GOT_HI16,
-    MO_GOT_LO16
+    MO_GOT_LO16,
+
+    MO_PC_REL,
   }; // enum TOF {
 
   enum {

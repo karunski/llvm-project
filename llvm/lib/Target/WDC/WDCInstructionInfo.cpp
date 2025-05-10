@@ -78,6 +78,72 @@ const WDCRegisterInfo &WDCInstrInfo::getRegisterInfo() const {
   return RI;
 }
 
+
+static void expandCMPGPi(const TargetInstrInfo & instrInfo, MachineBasicBlock &MBB, MachineInstr &MI) {
+  const auto debugLoc = MI.getDebugLoc();
+  const auto cmpReg = MI.getOperand(1).getReg();
+  const auto cmpImm = MI.getOperand(2).getImm();
+
+  const auto actualCmpOpcode = [cmpReg]() {
+    if (cmpReg == WDC::C) {
+      return WDC::CMPi;
+    }
+    if (cmpReg == WDC::X) {
+      return WDC::CPXi;
+    }
+    if (cmpReg == WDC::Y) {
+      return WDC::CPYi;
+    }
+    assert(false && "Unexpected register operand for CMPGPi!");
+    return WDC::CMPi;
+  }();
+
+  BuildMI(MBB, MI, debugLoc, instrInfo.get(actualCmpOpcode))
+      .add(MI.getOperand(0))
+      .addReg(cmpReg)
+      .addImm(cmpImm);
+}
+
+namespace {
+struct GenPurpInstExp {
+  llvm::WDCInstrInfo::TargetOpcodeTy opcodeA;
+  llvm::WDCInstrInfo::TargetOpcodeTy opcodeX;
+  llvm::WDCInstrInfo::TargetOpcodeTy opcodeY;
+};
+}
+
+// Expand LDGP* to LDA*,LDX*, or LDY* depending on the destination register.
+static constexpr GenPurpInstExp GPExpandLDGPi {
+  WDC::LDAi, WDC::LDXi, WDC::LDYi
+};
+static constexpr GenPurpInstExp GPExpandLDGPdp {
+  WDC::LDAdp, WDC::LDXdp, WDC::LDYdp
+};
+
+static void expandLDGP(const TargetInstrInfo &instrInfo,
+                       const GenPurpInstExp &instExp, MachineBasicBlock &MBB,
+                       MachineBasicBlock::iterator MI) {
+  const auto debugLoc = MI->getDebugLoc();
+  const auto destOprnd = MI->getOperand(0);
+  const auto srcOprnd = MI->getOperand(1);
+  assert(destOprnd.isReg() && "Expected register operand for LDGP dest!");
+  const auto destOprndReg = destOprnd.getReg();
+  const auto instr = [destOprndReg, &instExp]() {
+    if (destOprndReg == WDC::C) {
+      return instExp.opcodeA;
+    }
+    if (destOprndReg == WDC::X) {
+      return instExp.opcodeX;
+    }
+    if (destOprndReg == WDC::Y) {
+      return instExp.opcodeY;
+    }
+    assert(false && "Unexpected register operand for LDGP!");
+    return instExp.opcodeA;
+  }();
+  BuildMI(MBB, MI, debugLoc, instrInfo.get(instr), destOprndReg).add(srcOprnd);
+}
+
 bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   MachineBasicBlock &MBB = *MI.getParent();
   const auto instr = static_cast<decltype(WDC::RetRTL)>(MI.getDesc().getOpcode());
@@ -94,8 +160,14 @@ bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   case WDC::ADDal:
     expandADD(MBB, MI, WDC::ADCal);
     break;
+  case WDC::CMPGPi:
+    expandCMPGPi(*this, MBB, MI);
+    break;
+  case WDC::LDGPi:
+    expandLDGP(*this, GPExpandLDGPi, MBB, MI);
+    break;
   case WDC::LDGPdp:
-    expandLDGPdp(MBB, MI);
+    expandLDGP(*this, GPExpandLDGPdp, MBB, MI);
     break;
   case WDC::RetRTL:
     expandRTL(MBB, MI);
@@ -306,30 +378,6 @@ void llvm::WDCInstrInfo::expandSTGPdp(MachineBasicBlock& MBB, MachineBasicBlock:
     return WDC::STAdp;
   }();
   BuildMI(MBB, MI, debugLoc, get(instr)).add(srcOprnd).add(addrOprnd);
-}
-
-void llvm::WDCInstrInfo::expandLDGPdp(MachineBasicBlock &MBB,
-                                      MachineBasicBlock::iterator MI) const {
-  const auto debugLoc = MI->getDebugLoc();
-  const auto destOprnd = MI->getOperand(0);
-  const auto addrOprnd = MI->getOperand(1);
-  assert(destOprnd.isReg() && "Expected register operand for LDGPdp src!");
-  assert(addrOprnd.isImm() && "Expected immediate operand for LDGPdp addr!");
-  const auto destOprndReg = destOprnd.getReg();
-  const auto instr = [destOprndReg]() {
-    if (destOprndReg == WDC::C) {
-      return WDC::LDAdp;
-    }
-    if (destOprndReg == WDC::X) {
-      return WDC::LDXdp;
-    }
-    if (destOprndReg == WDC::Y) {
-      return WDC::LDYdp;
-    }
-    assert(false && "Unexpected register operand for LDGPdp!");
-    return WDC::LDAdp;
-  }();
-  BuildMI(MBB, MI, debugLoc, get(instr)).add(destOprnd).add(addrOprnd);
 }
 
 void llvm::WDCInstrInfo::expandADD(MachineBasicBlock &MBB,

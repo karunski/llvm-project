@@ -38,6 +38,9 @@ void llvm::WDCMCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
     outputExpr();
     OS << ").low";
   }
+  else if (exprKind == WDCExprKind::PCRel || exprKind == WDCExprKind::None) {
+    outputExpr();
+  }
   else
   {
     assert(false && "Unhandled WDCExprKind");

@@ -20,7 +20,8 @@ public:
         None,
         AbsLong,
         ImmAbsLongHi,
-        ImmAbsLongLo
+        ImmAbsLongLo,
+        PCRel,
     };
 
     static MCExpr * create(WDCExprKind Kind, const MCExpr *Expr, MCContext &Ctx);

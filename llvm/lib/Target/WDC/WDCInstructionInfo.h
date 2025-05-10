@@ -64,6 +64,8 @@ public:
     const TargetRegisterInfo *TRI, Register VReg,
     MachineInstr::MIFlag Flags = MachineInstr::NoFlags) const override;
 
+    using TargetOpcodeTy = decltype(WDC::ADCi);
+
 private:
   void storeRegToStack(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator MI, Register SrcReg,
@@ -96,12 +98,10 @@ private:
                                                 int &FrameIndex) const override;
 
   void expandSTGPdp(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI) const;
-  void expandLDGPdp(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI) const;
 
   MachineMemOperand *GetMemOperand(MachineBasicBlock &MBB, int FI,
                                    MachineMemOperand::Flags Flags) const;
 
-  using TargetOpcodeTy = decltype(WDC::ADCi);
   void expandADD(MachineBasicBlock &MBB, MachineBasicBlock::iterator I, TargetOpcodeTy) const;
   void expandSUB(MachineBasicBlock &MBB, MachineBasicBlock::iterator I, TargetOpcodeTy) const;
   void expandRTL(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) const;
