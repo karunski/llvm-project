@@ -144,6 +144,22 @@ static void expandLDGP(const TargetInstrInfo &instrInfo,
   BuildMI(MBB, MI, debugLoc, instrInfo.get(instr), destOprndReg).add(srcOprnd);
 }
 
+static void expandLDAal8(const TargetInstrInfo &instrInfo,
+                       MachineBasicBlock &MBB,
+                       MachineBasicBlock::iterator MI) {
+  const auto debugLoc = MI->getDebugLoc();
+  const auto destOprnd = MI->getOperand(0);
+  const auto srcOprnd = MI->getOperand(1);
+  assert(destOprnd.isReg() && "Expected register operand for LDAal8 dest!");
+  const auto destOprndReg = destOprnd.getReg();
+  BuildMI(MBB, MI, debugLoc, instrInfo.get(WDC::SEP), WDC::P)
+      .addImm(0x20); // 8-bit A mode
+  BuildMI(MBB, MI, debugLoc, instrInfo.get(WDC::LDAal), destOprndReg)
+      .add(srcOprnd);
+  BuildMI(MBB, MI, debugLoc, instrInfo.get(WDC::REP), WDC::P)
+      .addImm(0x20); // 16-bit A mode
+}
+
 bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   MachineBasicBlock &MBB = *MI.getParent();
   const auto instr = static_cast<decltype(WDC::RetRTL)>(MI.getDesc().getOpcode());
@@ -162,6 +178,9 @@ bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     break;
   case WDC::CMPGPi:
     expandCMPGPi(*this, MBB, MI);
+    break;
+  case WDC::LDAal8:
+    expandLDAal8(*this, MBB, MI);
     break;
   case WDC::LDGPi:
     expandLDGP(*this, GPExpandLDGPi, MBB, MI);

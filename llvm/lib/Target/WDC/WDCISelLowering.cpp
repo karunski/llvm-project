@@ -701,97 +701,178 @@ void llvm::WDCTargetLowering::WDCCallingConvention::analyzeReturn(
   analyzeReturn(Outs, IsSoftFloat, nullptr, RetTy);
 }
 
-auto llvm::WDCTargetLowering::EmitInstrWithCustomInserter(llvm::MachineInstr& pseudoInst, llvm::MachineBasicBlock* mbbIn) const -> MachineBasicBlock * {
-  using TargetOpcodeTy = decltype(WDC::SETEQ_i);
-  const auto MF = mbbIn->getParent();
-  const auto LLVM_BB = mbbIn->getBasicBlock();
-  const auto FallThrough = mbbIn->getFallThrough();
+using TargetOpcodeTy = decltype(WDC::SETEQ_i);
+
+static void InsertJumpToFallThrough(llvm::MachineBasicBlock & mbbIn,
+                                    const llvm::WDCInstrInfo &targetInstInfo,
+                                    const llvm::DebugLoc &dl) {
+  const auto FallThrough = mbbIn.getFallThrough();
+
+  // If the current basic block falls through to another basic block,
+  // we must insert an unconditional branch to the fallthrough destination
+  // if we are to insert basic blocks at the prior fallthrough point.
+  if (FallThrough) {
+    BuildMI(&mbbIn, dl, targetInstInfo.get(WDC::BRA)).addMBB(FallThrough);
+  }
+}
+
+static std::tuple<llvm::MachineBasicBlock *, llvm::MachineBasicBlock *>
+SplitBasicBlock(llvm::MachineBasicBlock &mbbIn, llvm::MachineFunction &MF,
+                const llvm::WDCInstrInfo &targetInstInfo,
+                const llvm::DebugLoc &dl, llvm::MachineInstr &pseudoInst) {
+
+  InsertJumpToFallThrough(mbbIn, targetInstInfo, dl);
+
+  const auto LLVM_BB = mbbIn.getBasicBlock();
+  const auto trueMBB = MF.CreateMachineBasicBlock(LLVM_BB);
+  const auto nextMBB = MF.CreateMachineBasicBlock(LLVM_BB);
+
+  auto I = std::find_if(MF.begin(), MF.end(),
+                        [&mbbIn](const auto &blck) { return &mbbIn == &blck; });
+  if (I != MF.end()) {
+    ++I;
+  }
+  MF.insert(I, trueMBB);
+  MF.insert(I, nextMBB);
+
+  // Set the call frame size on entry to the new basic blocks.
+  const auto CallFrameSize = targetInstInfo.getCallFrameSizeAt(pseudoInst);
+  trueMBB->setCallFrameSize(CallFrameSize);
+  nextMBB->setCallFrameSize(CallFrameSize);
+
+  // Transfer remaining instructions and all successors of the current
+  // block to the block which will contain the Phi node for the
+  // select.
+  nextMBB->splice(nextMBB->begin(), &mbbIn,
+                  std::next(MachineBasicBlock::iterator{pseudoInst}),
+                  mbbIn.end());
+  nextMBB->transferSuccessorsAndUpdatePHIs(&mbbIn);
+  return {trueMBB, nextMBB};
+}
+
+static llvm::MachineBasicBlock *InsertSETEQ(
+    llvm::MachineBasicBlock *mbbIn, const llvm::WDCInstrInfo &targetInstInfo,
+    llvm::MachineInstr &pseudoInst, const TargetOpcodeTy opcode) {
   const auto dl = pseudoInst.getDebugLoc();
+  const auto MF = mbbIn->getParent();
+  auto &mcRegInfo = MF->getRegInfo();
+
+  //
+  //   %3:indexregs = SETEQ_i / SETEQ_al %2:regsa16, RHS
+  // # expand to:
+  //   CMP %2:regsa16, RHS
+  //   BEQ true
+  //   %3:indexregs = LDX #0
+  //   BRA next
+
+  // true:
+  // %3:indexregs = LDX #1
+
+  // next:  // fallthrough here
+
+  const auto [trueMBB, nextMBB] = SplitBasicBlock(*mbbIn, *MF, targetInstInfo, dl, pseudoInst);
+
+  // Assume the we only support branch if equal for now.
+  const auto cmpInst = [opcode]() {
+    if (opcode == WDC::SETEQ_i) {
+      return WDC::CMPi;
+    } else if (opcode == WDC::SETEQ_al) {
+      return WDC::CMPal;
+    }
+    llvm_unreachable("Invalid opcode for SETEQ");
+  }();
+  BuildMI(mbbIn, dl, targetInstInfo.get(cmpInst), WDC::P)
+      .add(pseudoInst.getOperand(1))
+      .add(pseudoInst.getOperand(2));
+  BuildMI(mbbIn, dl, targetInstInfo.get(WDC::BEQ))
+      .addMBB(trueMBB, WDCII::MO_PC_REL);
+  trueMBB->setLabelMustBeEmitted();
+  mbbIn->addSuccessor(trueMBB);
+  const auto pseudoInstDest = pseudoInst.getOperand(0);
+  const auto pseudoInstDestReg = pseudoInstDest.getReg();
+  const auto destRegClass = mcRegInfo.getRegClass(pseudoInstDestReg);
+  const auto falseDestReg = mcRegInfo.createVirtualRegister(destRegClass);
+  BuildMI(mbbIn, dl, targetInstInfo.get(WDC::LDGPi), falseDestReg).addImm(0);
+  BuildMI(mbbIn, dl, targetInstInfo.get(WDC::BRA))
+      .addMBB(nextMBB, WDCII::MO_PC_REL);
+  mbbIn->addSuccessor(nextMBB);
+
+  // If 'true', unconditionally flow back to the true blockflow into the next
+  // block.
+  const auto trueDestReg = mcRegInfo.createVirtualRegister(destRegClass);
+  BuildMI(trueMBB, dl, targetInstInfo.get(WDC::LDGPi), trueDestReg).addImm(1);
+  trueMBB->addSuccessor(nextMBB);
+
+  // Set up the Phi node to determine where we came from
+  BuildMI(*nextMBB, nextMBB->begin(), dl, targetInstInfo.get(WDC::PHI),
+          pseudoInst.getOperand(0).getReg())
+      .addReg(falseDestReg)
+      .addMBB(mbbIn)
+      .addReg(trueDestReg)
+      .addMBB(trueMBB);
+  pseudoInst.eraseFromParent(); // The pseudo instruction is gone now.
+  return nextMBB;
+}
+
+static llvm::MachineBasicBlock *InsertSEXT(
+    llvm::MachineBasicBlock *mbbIn, const llvm::WDCInstrInfo &targetInstInfo,
+    llvm::MachineInstr &pseudoInst) {
+//  LDA 0 get value to sign extend
+//  AND #$FF zero out any garbage in high byte
+//  BIT #$80 test high bit of low byte
+//  BEQ OK number is positive; leave as is
+//  ORA #$FF00 turn on high bits
+// OK: STA 0 save sign-extended value
+  const auto dl = pseudoInst.getDebugLoc();
+  const auto [negMBB, nextMBB] = SplitBasicBlock(*mbbIn, *mbbIn->getParent(), targetInstInfo, dl, pseudoInst);
+  const auto pseudoInstDest = pseudoInst.getOperand(0).getReg();
+  const auto MF = mbbIn->getParent();
+  auto &mcRegInfo = MF->getRegInfo();
+  const auto clrHighReg = mcRegInfo.createVirtualRegister(&WDC::RegsA16RegClass); // destination has to be A
+  BuildMI(mbbIn, dl, targetInstInfo.get(WDC::ANDi), clrHighReg) // AND #$FF
+      .add(pseudoInst.getOperand(1))
+      .addImm(0xFF);
+  BuildMI(mbbIn, dl, targetInstInfo.get(WDC::BITi), WDC::P)     // BIT #$80
+      .addReg(clrHighReg)
+      .addImm(0x80);
+  BuildMI(mbbIn, dl, targetInstInfo.get(WDC::BEQ)) // BEQ nextMBB
+      .addMBB(nextMBB, WDCII::MO_PC_REL);
+  mbbIn->addSuccessor(nextMBB);
+  mbbIn->addSuccessor(negMBB); // otherwise, fall through to the negMBB
+
+  // Construct the 'negative' sign extend block
+
+  const auto negDestReg = mcRegInfo.createVirtualRegister(&WDC::RegsA16RegClass); // destination has to be A
+  BuildMI(negMBB, dl, targetInstInfo.get(WDC::ORAi), negDestReg) // ORA #$FF00
+      .addReg(clrHighReg)
+      .addImm(0xFF00);
+  negMBB->addSuccessor(nextMBB);
+
+  // Set up the Phi node to determine where we came from
+  BuildMI(*nextMBB, nextMBB->begin(), dl, targetInstInfo.get(WDC::PHI),
+          pseudoInstDest)
+      .addReg(clrHighReg)
+      .addMBB(mbbIn)
+      .addReg(negDestReg)
+      .addMBB(negMBB);
+  pseudoInst.eraseFromParent(); // The pseudo instruction is gone now.
+  return nextMBB;
+}
+
+auto llvm::WDCTargetLowering::EmitInstrWithCustomInserter(llvm::MachineInstr& pseudoInst, llvm::MachineBasicBlock* mbbIn) const -> MachineBasicBlock * {
   const auto & targetInstInfo = static_cast<const WDCInstrInfo &>(*pseudoInst.getParent()
                                 ->getParent()
                                 ->getSubtarget()
                                 .getInstrInfo());
-  auto &mcRegInfo = MF->getRegInfo();
 
   const auto opcode = static_cast<TargetOpcodeTy>(pseudoInst.getOpcode());
   if (opcode == WDC::SETEQ_i || opcode == WDC::SETEQ_al) {
-
-    // 
-    //   %3:indexregs = SETEQ_i / SETEQ_al %2:regsa16, RHS
-    // # expand to:
-    //   CMP %2:regsa16, RHS
-    //   BEQ true
-    //   %3:indexregs = LDX #0
-    //   BRA next
-      
-    // true:
-    // %3:indexregs = LDX #1
-
-    // next:  // fallthrough here 
-    //  
-    // If the current basic block falls through to another basic block,
-    // we must insert an unconditional branch to the fallthrough destination
-    // if we are to insert basic blocks at the prior fallthrough point.
-    if (FallThrough) {
-      BuildMI(mbbIn, dl, targetInstInfo.get(WDC::BRA)).addMBB(FallThrough);
-    }
-
-    const auto trueMBB = MF->CreateMachineBasicBlock(LLVM_BB);
-    const auto nextMBB = MF->CreateMachineBasicBlock(LLVM_BB);
-
-    auto I = std::find_if(MF->begin(), MF->end(), [mbbIn](const auto & blck) { return mbbIn == &blck;});
-    if (I != MF->end()) { ++I; }
-    MF->insert(I, trueMBB);
-    MF->insert(I, nextMBB);
-
-    // Set the call frame size on entry to the new basic blocks.
-    const auto CallFrameSize = targetInstInfo.getCallFrameSizeAt(pseudoInst);
-    trueMBB->setCallFrameSize(CallFrameSize);
-    nextMBB->setCallFrameSize(CallFrameSize);
-
-    // Transfer remaining instructions and all successors of the current
-    // block to the block which will contain the Phi node for the
-    // select.
-    nextMBB->splice(nextMBB->begin(), mbbIn,
-                    std::next(MachineBasicBlock::iterator{pseudoInst}), mbbIn->end());
-    nextMBB->transferSuccessorsAndUpdatePHIs(mbbIn);
-    
-    // Assume the we only support branch if equal for now.
-    const auto cmpInst = [opcode]() {
-      if (opcode == WDC::SETEQ_i) {
-        return WDC::CMPi;
-      }
-      else if (opcode == WDC::SETEQ_al) {
-        return WDC::CMPal;
-      }
-      llvm_unreachable("Invalid opcode for SETEQ");
-    }();
-    BuildMI(mbbIn, dl, targetInstInfo.get(cmpInst), WDC::P).add(pseudoInst.getOperand(1)).add(pseudoInst.getOperand(2));
-    BuildMI(mbbIn, dl, targetInstInfo.get(WDC::BEQ)).addMBB(trueMBB, WDCII::MO_PC_REL);
-    trueMBB->setLabelMustBeEmitted();
-    mbbIn->addSuccessor(trueMBB);
-    const auto pseudoInstDest = pseudoInst.getOperand(0);
-    const auto pseudoInstDestReg = pseudoInstDest.getReg();
-    const auto destRegClass = mcRegInfo.getRegClass(pseudoInstDestReg);
-    const auto falseDestReg = mcRegInfo.createVirtualRegister(destRegClass);
-    BuildMI(mbbIn, dl, targetInstInfo.get(WDC::LDGPi), falseDestReg).addImm(0);
-    BuildMI(mbbIn, dl, targetInstInfo.get(WDC::BRA)).addMBB(nextMBB, WDCII::MO_PC_REL);
-    mbbIn->addSuccessor(nextMBB);
-
-    // If 'true', unconditionally flow back to the true blockflow into the next block.
-    const auto trueDestReg = mcRegInfo.createVirtualRegister(destRegClass);
-    BuildMI(trueMBB, dl, targetInstInfo.get(WDC::LDGPi), trueDestReg).addImm(1);
-    trueMBB->addSuccessor(nextMBB);
-
-    // Set up the Phi node to determine where we came from
-    BuildMI(*nextMBB, nextMBB->begin(), dl, targetInstInfo.get(WDC::PHI),
-            pseudoInst.getOperand(0).getReg())
-        .addReg(falseDestReg)
-        .addMBB(mbbIn)
-        .addReg(trueDestReg)
-        .addMBB(trueMBB);
-    pseudoInst.eraseFromParent(); // The pseudo instruction is gone now.
-    return nextMBB;
+    return InsertSETEQ(mbbIn, targetInstInfo,
+                       pseudoInst, opcode);
   }
+  else if (opcode == WDC::SEXT) {
+    return InsertSEXT(mbbIn, targetInstInfo, pseudoInst);
+  }
+
   return TargetLowering::EmitInstrWithCustomInserter(pseudoInst, mbbIn);
 }

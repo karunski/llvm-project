@@ -34,16 +34,14 @@ let isAdd = 1,Constraints="$dst = $src" in {
 }
 
 let isAdd = 1,Defs=[Carry],Constraints="$src = $dst" in {
-  let Uses=[M] in {
-    def ADDdp : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$slot),
-                           [(set RegsA16:$dst, (ADDNode RegsA16:$src, PatternDp:$slot))]>;
-    def ADDi : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, UnsignedImm16Operand:$const),
-                          [(set RegsA16:$dst, (ADDNode RegsA16:$src, Imm16Pattern:$const))]>;
-    def ADDal : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, OprndAbsLong:$addr),
-                           [(set RegsA16:$dst, (ADDNode RegsA16:$src, (Wrapper (tglobaladdr:$addr))))]>;
-  }
+  def ADDdp : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$slot),
+                          [(set RegsA16:$dst, (ADDNode RegsA16:$src, PatternDp:$slot))]>;
+  def ADDi : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, UnsignedImm16Operand:$const),
+                        [(set RegsA16:$dst, (ADDNode RegsA16:$src, Imm16Pattern:$const))]>;
+  def ADDal : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src, OprndAbsLong:$addr),
+                          [(set RegsA16:$dst, (ADDNode RegsA16:$src, (Wrapper (tglobaladdr:$addr))))]>;
 
-  let Uses=[Carry,M] in {
+  let Uses=[Carry] in {
     def ADCal : InstAbsLong<0x6f, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAbsLong:$addr), "ADC\t$addr",
                           [(set RegsA16:$dst, (addc RegsA16:$src, (Wrapper (tglobaladdr:$addr))))]>;
     def ADCdp : InstDrctPg<0x65, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$addr), "ADC\t$addr",
@@ -53,7 +51,7 @@ let isAdd = 1,Defs=[Carry],Constraints="$src = $dst" in {
   }
 }
 
-let Constraints="$dst = $src",Uses=[M] in {
+let Constraints="$dst = $src" in {
   def ANDi : InstImm16<0x29, (outs RegsA16:$dst), (ins RegsA16:$src, UnsignedImm16Operand:$const), 
                              "AND\t$const", [(set RegsA16:$dst, (ANDNode RegsA16:$src, Imm16Pattern:$const))]>;
   def ANDdp : InstDrctPg<0x25, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$addr),
@@ -68,10 +66,14 @@ def ASL : InstImpl<0x0A, (outs RegsA16:$dst), (ins RegsA16:$src),
                                  "ASL\tA", [(set RegsA16:$dst, (shl RegsA16:$src, OnePattern))]>;
 
 let isBranch=true,isTerminator=true in {
-  def BEQ : InstImm8<0xF0, (outs), (ins SignedImm8Operand:$const), "BEQ\t$const", []>;
-  def BCS : InstImm8<0xB0, (outs), (ins SignedImm8Operand:$const), "BCS\t$const", []>;
+  let Uses=[P] in {
+    def BEQ : InstImm8<0xF0, (outs), (ins SignedImm8Operand:$const), "BEQ\t$const", []>;
+    def BCS : InstImm8<0xB0, (outs), (ins SignedImm8Operand:$const), "BCS\t$const", []>;
+  }
   def BRA : InstImm8<0x80, (outs), (ins SignedImm8Operand:$const), "BRA\t$const", []>;
 }
+
+def BITi : InstImm16<0x89, (outs StatusReg:$sr), (ins RegsA16:$src, UnsignedImm16Operand:$const), "BIT\t$const", []>;
 
 def CMPGPi : InstPseudo<(outs StatusReg:$sr), (ins RegsGP16:$src, UnsignedImm16Operand:$const), []>;
 def CMPi : InstImm16<0xc9, (outs StatusReg:$sr), (ins RegsA16:$src, UnsignedImm16Operand:$const),
@@ -155,7 +157,7 @@ let Constraints="$dst = $src", Uses=[M,Carry], Defs=[Carry] in {
                                   [(set RegsA16:$dst, (srl RegsA16:$src, OnePattern))]>;
 }
 
-let Constraints="$dst = $src",Uses=[M] in {
+let Constraints="$dst = $src" in {
   def ORAi  : InstImm16<0x09, (outs RegsA16:$dst), (ins RegsA16:$src, UnsignedImm16Operand:$const), "ORA\t$const", 
                           [(set RegsA16:$dst, (ORANode RegsA16:$src, Imm16Pattern:$const))]>;
   def ORAdp : InstDrctPg<0x05, (outs RegsA16:$dst), (ins RegsA16:$src, OprndAddr8:$addr), "ORA\t$addr", 
@@ -238,7 +240,7 @@ let usesCustomInserter=true in {
                          [(set RegsGP16:$dst, (SETCCNode RegsA16:$src, (Wrapper (tglobaladdr:$addr)), SETEQ))]>;
 }
 
-let Constraints="$src = $dst" in {
+let Constraints="$src = $dst",usesCustomInserter=true in {
   def SEXT : InstPseudo<(outs RegsA16:$dst), (ins RegsA16:$src), 
                       [(set RegsA16:$dst, (sext_inreg RegsA16:$src, i8))]>;
 }
