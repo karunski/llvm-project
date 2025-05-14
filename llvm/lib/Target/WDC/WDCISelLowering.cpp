@@ -106,7 +106,8 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   setOperationAction(ISD::SETCC, MVT::i16, LegalizeAction::Custom);
   setOperationAction(ISD::GlobalAddress, MVT::i32, LegalizeAction::Custom);
   setOperationAction(ISD::STORE, MVT::i32, LegalizeAction::Custom);
-  setLoadExtAction(ISD::LoadExtType::SEXTLOAD, MVT::i16, MVT::i8, LegalizeAction::Expand);
+  setLoadExtAction({ISD::LoadExtType::SEXTLOAD, ISD::LoadExtType::ZEXTLOAD},
+                   MVT::i16, MVT::i8, LegalizeAction::Expand);
 
   // setOperationAction(ISD::STORE, MVT::i8, LegalizeAction::Custom);
   //setOperationAction({ISD::Constant}, {MVT::i8,MVT::i16}, LegalizeAction::Custom);
@@ -120,7 +121,6 @@ WDCTargetLowering::WDCTargetLowering(const WDCTargetMachine &TM,
   //         ( a > b  ) ->  (b <  a)  -> !(b >= a)
   //         ( a <= b ) ->  (b >= a)
   setCondCodeAction({ISD::SETNE, ISD::SETLE, ISD::SETGT, ISD::SETLT}, MVT::i16, LegalizeAction::Expand); 
-  
 
   // must, computeRegisterProperties - Once all of the register classes are
   //  added, this allows us to compute derived properties we expose.
