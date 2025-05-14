@@ -258,8 +258,8 @@ let mayStore=true, hasSideEffects=false in {
                         [(store RegsA16:$src, NearGlobalPattern:$addr)]>;
     def STAal  : InstAbsLong<0x8F, (outs), (ins RegsA16:$src, OprndAbsLong:$addr), "STA\t$addr",   
                         [(store RegsA16:$src, (Wrapper (tglobaladdr:$addr)))]>;
-    def STAaltrunc : InstAbsLong<0x8F, (outs), (ins FakeRegs:$src, OprndAbsLong:$addr), "STA\t$addr",   
-                        [(truncstore FakeRegs:$src, (Wrapper (tglobaladdr:$addr)))]>;
+    def STAal8 : InstPseudo<(outs), (ins RegsA16:$src, OprndAbsLong:$addr), 
+                        [(truncstore RegsA16:$src, (Wrapper (tglobaladdr:$addr)))]>;
     def STAdp  : InstDrctPg<0x85,  (outs), (ins RegsA16:$src, OprndAddr8:$addr),   "STA\t$addr",   
                         [(store RegsA16:$src, PatternDp:$addr)]>;
     def STAdpi : InstDrctPg<0x92,  (outs), (ins RegsA16:$src, OprndAddr8:$addr),   "STA\t($addr)", 

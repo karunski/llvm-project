@@ -160,6 +160,22 @@ static void expandLDAal8(const TargetInstrInfo &instrInfo,
       .addImm(0x20); // 16-bit A mode
 }
 
+static void expandSTAal8(const TargetInstrInfo &instrInfo,
+                       MachineBasicBlock &MBB,
+                       MachineBasicBlock::iterator MI) {
+  const auto debugLoc = MI->getDebugLoc();
+  const auto srcOprnd = MI->getOperand(0);
+  const auto destOprnd = MI->getOperand(1);
+  assert(srcOprnd.isReg() && "Expected register operand for STAal8 dest!");
+  BuildMI(MBB, MI, debugLoc, instrInfo.get(WDC::SEP), WDC::P)
+      .addImm(0x20); // 8-bit A mode
+  BuildMI(MBB, MI, debugLoc, instrInfo.get(WDC::STAal))
+      .add(srcOprnd)
+      .add(destOprnd);
+  BuildMI(MBB, MI, debugLoc, instrInfo.get(WDC::REP), WDC::P)
+      .addImm(0x20); // 16-bit A mode
+}
+
 bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   MachineBasicBlock &MBB = *MI.getParent();
   const auto instr = static_cast<decltype(WDC::RetRTL)>(MI.getDesc().getOpcode());
@@ -202,6 +218,9 @@ bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     break;
   case WDC::STGPdp:
     expandSTGPdp(MBB, MI);
+    break;
+  case WDC::STAal8:
+    expandSTAal8(*this, MBB, MI);
     break;
   case WDC::SUBdp:
     expandSUB(MBB, MI, WDC::SBCdp);
