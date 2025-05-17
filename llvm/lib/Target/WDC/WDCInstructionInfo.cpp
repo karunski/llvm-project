@@ -144,7 +144,7 @@ static void expandLDGP(const TargetInstrInfo &instrInfo,
   BuildMI(MBB, MI, debugLoc, instrInfo.get(instr), destOprndReg).add(srcOprnd);
 }
 
-static void expandLDAal8(const TargetInstrInfo &instrInfo,
+static void expandLDAal8ext(const TargetInstrInfo &instrInfo,
                        MachineBasicBlock &MBB,
                        MachineBasicBlock::iterator MI) {
   const auto debugLoc = MI->getDebugLoc();
@@ -160,7 +160,7 @@ static void expandLDAal8(const TargetInstrInfo &instrInfo,
       .addImm(0x20); // 16-bit A mode
 }
 
-static void expandSTAal8(const TargetInstrInfo &instrInfo,
+static void expandSTAal8trunc(const TargetInstrInfo &instrInfo,
                        MachineBasicBlock &MBB,
                        MachineBasicBlock::iterator MI) {
   const auto debugLoc = MI->getDebugLoc();
@@ -195,8 +195,8 @@ bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   case WDC::CMPGPi:
     expandCMPGPi(*this, MBB, MI);
     break;
-  case WDC::LDAal8:
-    expandLDAal8(*this, MBB, MI);
+  case WDC::LDAal8ext:
+    expandLDAal8ext(*this, MBB, MI);
     break;
   case WDC::LDGPi:
     expandLDGP(*this, GPExpandLDGPi, MBB, MI);
@@ -219,8 +219,8 @@ bool llvm::WDCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   case WDC::STGPdp:
     expandSTGPdp(MBB, MI);
     break;
-  case WDC::STAal8:
-    expandSTAal8(*this, MBB, MI);
+  case WDC::STAal8trunc:
+    expandSTAal8trunc(*this, MBB, MI);
     break;
   case WDC::SUBdp:
     expandSUB(MBB, MI, WDC::SBCdp);

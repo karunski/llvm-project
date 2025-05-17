@@ -109,18 +109,13 @@ let isAdd = 1,mayLoad=1,mayStore=1,Uses=[M] in {
 let mayLoad=1 in {
   def LDAal : InstAbsLong<0xAF, (outs RegsA16:$dst), (ins OprndAbsLong:$src),
                           "LDA\t$src", [(set RegsA16:$dst, (load (Wrapper (tglobaladdr:$src))))]>;
-  def LDAal8 : InstPseudo<(outs RegsA16:$dst), (ins OprndAbsLong:$src),
+  def LDAal8 : InstAbsLong<0xAF, (outs RegsA8:$dst), (ins OprndAbsLong:$src),
+                          "LDA\t$src", [(set RegsA8:$dst, (load (Wrapper (tglobaladdr:$src))))]>;
+  def LDAal8ext : InstPseudo<(outs RegsA16:$dst), (ins OprndAbsLong:$src),
                         [(set RegsA16:$dst, (extload (Wrapper (tglobaladdr:$src))))]>;
   def LDAdpil : InstDrctPg<0xA7, (outs RegsA16:$dst), (ins OprndDrctPgIndrct:$addr),
                           "LDA\t$addr",
                           [(set RegsA16:$dst, (LDAdpilNode frameIndexPattern:$addr))]>;
-}
-//def LDAi  : WDCLoadInstructionImmediate<0xA9, "LDA", UnsignedImm16Operand>;
-let Defs=[A],Uses=[M],hasSideEffects=false in {
-  // def LDAi : InstImm16<0xA9, (outs RegsA16:$dst), (ins UnsignedImm16Operand:$constant),
-  //                     "LONGA ON\n\tLDA\t$constant", [(set RegsA16:$dst, (load imm:$constant))]>;
-  def LDAi8 : InstImm8<0xA9, (outs RegsA8:$dst), (ins UnsignedImm8Operand:$const),
-                      "LONGA OFF\n\tLDA\t$const", [(set RegsA8:$dst, (load imm:$const))]>;
 }
 
 let mayLoad=1,hasSideEffects=0 in {
@@ -258,7 +253,9 @@ let mayStore=true, hasSideEffects=false in {
                         [(store RegsA16:$src, NearGlobalPattern:$addr)]>;
     def STAal  : InstAbsLong<0x8F, (outs), (ins RegsA16:$src, OprndAbsLong:$addr), "STA\t$addr",   
                         [(store RegsA16:$src, (Wrapper (tglobaladdr:$addr)))]>;
-    def STAal8 : InstPseudo<(outs), (ins RegsA16:$src, OprndAbsLong:$addr), 
+    def STAal8 : InstAbsLong<0x8f, (outs), (ins RegsA8:$src, OprndAbsLong:$addr), "STA\t$addr",   
+                        [(store RegsA8:$src, (Wrapper (tglobaladdr:$addr)))]>;
+    def STAal8trunc : InstPseudo<(outs), (ins RegsA16:$src, OprndAbsLong:$addr), 
                         [(truncstore RegsA16:$src, (Wrapper (tglobaladdr:$addr)))]>;
     def STAdp  : InstDrctPg<0x85,  (outs), (ins RegsA16:$src, OprndAddr8:$addr),   "STA\t$addr",   
                         [(store RegsA16:$src, PatternDp:$addr)]>;
